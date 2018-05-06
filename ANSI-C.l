@@ -87,10 +87,10 @@ WHITESPACE	[ \t\v\n\f]
 {BREAK}			return BREAK;
 {EXTERN}		return EXTERN;
 
-{INTEGER}		yyval.integer = atoi(yytext); return CONSTANTE;
-{REAL}			yyval.real = atof(yytext); return CONSTANTE;
-{HEXA}			yyval.integer = strtol(yytext, NULL, 0); return CONSTANTE;
-{EXP}			yyval.exp = yytext; return CONSTANTE;
+{INTEGER}		yyval.value = yytext; return CONSTANTE;
+{REAL}			yyval.value = yytext; return CONSTANTE;
+{HEXA}			yyval.value = yytext; return CONSTANTE;
+{EXP}			yyval.value = yytext; return CONSTANTE;
 
 {INT}			return INT;
 {VOID}			return VOID;
