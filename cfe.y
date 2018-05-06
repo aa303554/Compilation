@@ -1,6 +1,13 @@
 %{
+#include <stdio.h>
 %}
-%token IDENTIFICATEUR CONSTANTE VOID INT FOR WHILE IF ELSE SWITCH CASE DEFAULT
+
+%union{
+	int value;
+	char* ident;
+}
+
+%token <ident> IDENTIFICATEUR <value> CONSTANTE VOID INT FOR WHILE IF ELSE SWITCH CASE DEFAULT
 %token BREAK RETURN PLUS MOINS MUL DIV LSHIFT RSHIFT BAND BOR LAND LOR LT GT 
 %token GEQ LEQ EQ NEQ NOT EXTERN
 %left PLUS MOINS
@@ -135,3 +142,10 @@ binary_comp	:
 	|	NEQ
 ;
 %%
+
+void yyerror(const char *s) { printf("Error : %s\n", s); }
+int main(){ 
+	while(yyparse()){
+	}
+	return 1;
+}

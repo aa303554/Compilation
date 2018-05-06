@@ -1,5 +1,4 @@
 %{
-#include <stdio.h>
 #include "y.tab.h"
 %}
 
@@ -65,14 +64,20 @@ EXTERN		"extern"
 
 /* Espaces, saut de lignes etc... */
 WHITESPACE	[ \t\v\n\f]
-
+COMMENTAIRES	("/"+"\*"+(.[^\*/]|{WHITESPACE})*"\*"+"/"+|"//".*\n)
 
 /********* ANALYSE **********/
 /* Important ! Analyser les */
 /* mots réservés avant les  */
 /* identificateurs etc...   */
 /****************************/
+
 %%
+
+{COMMENTAIRES}		
+{WHITESPACE}		
+
+
 {FOR}			return FOR;
 {WHILE}			return WHILE;
 
@@ -87,15 +92,15 @@ WHITESPACE	[ \t\v\n\f]
 {BREAK}			return BREAK;
 {EXTERN}		return EXTERN;
 
-{INTEGER}		yyval.value = yytext; return CONSTANTE;
-{REAL}			yyval.value = yytext; return CONSTANTE;
-{HEXA}			yyval.value = yytext; return CONSTANTE;
-{EXP}			yyval.value = yytext; return CONSTANTE;
+{INTEGER}		yylval.value = atoi(yytext); return CONSTANTE;
+{REAL}			return CONSTANTE;
+{HEXA}			return CONSTANTE;
+{EXP}			return CONSTANTE;
 
 {INT}			return INT;
 {VOID}			return VOID;
 
-{IDENTIFICATEUR} 	yyval.ident = yytext; return IDENTIFICATEUR;
+{IDENTIFICATEUR} 	yylval.ident = yytext; return IDENTIFICATEUR;
 
 {PLUS}			return PLUS;
 {MOINS}			return MOINS;
@@ -108,11 +113,13 @@ WHITESPACE	[ \t\v\n\f]
 {BOR}			return BOR;
 {LAND}			return LAND;
 {LOR}			return LOR;
+
+{LT}			return LT;
+{GT}			return GT;
+{LEQ}			return LEQ;
+{GEQ}			return GEQ;
 {EQ}			return EQ;
+{NEQ}			return NEQ;
 
 .			return yytext[0]; /* Echec de reconnaissance -> erreur OU caractères spécial (";" "," "{" "}" etc ...) */
 %%
-
-void yyerror(char const *s){
-	fprintf(stderr, "%s\n", s);
-}
