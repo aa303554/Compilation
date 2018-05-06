@@ -3,6 +3,8 @@
 #include "y.tab.h"
 %}
 
+%option noyywrap
+
 /* Tous les nombres */
 DIGIT		[0-9]
 HEXA		0[xX][a-fA-F0-9]+
@@ -31,7 +33,6 @@ BOR		"|"
 NOT		"!"
 LAND		"&&"
 LOR		"||"
-EQUAL		"=="
 
 /* Opérations spéciales */
 ADD1		"++"
@@ -86,16 +87,15 @@ WHITESPACE	[ \t\v\n\f]
 {BREAK}			return BREAK;
 {EXTERN}		return EXTERN;
 
-{INTEGER}		return CONSTANTE;
-{REAL}			return CONSTANTE;
-{HEXA}			return CONSTANTE;
-{EXP}			return CONSTANTE;
+{INTEGER}		yyval.integer = atoi(yytext); return CONSTANTE;
+{REAL}			yyval.real = atof(yytext); return CONSTANTE;
+{HEXA}			yyval.integer = strtol(yytext, NULL, 0); return CONSTANTE;
+{EXP}			yyval.exp = yytext; return CONSTANTE;
 
 {INT}			return INT;
-{FLOAT}			return FLOAT;
 {VOID}			return VOID;
 
-{IDENTIFICATEUR} 	return IDENTIFICATEUR;
+{IDENTIFICATEUR} 	yyval.ident = yytext; return IDENTIFICATEUR;
 
 {PLUS}			return PLUS;
 {MOINS}			return MOINS;
@@ -104,13 +104,15 @@ WHITESPACE	[ \t\v\n\f]
 {LSHIFT}		return LSHIFT;
 {RSHIFT}		return RSHIFT;
 {NOT}			return NOT;
-{AND}			return AND;
-{OR}			return OR;
-{EQUAL}			return EQUAL;
-{ADD1}			return ADD1;
-{MIN1}			return MIN1;
-
-{WHITESPACE}		return WHITESPACE;
+{BAND}			return BAND;
+{BOR}			return BOR;
+{LAND}			return LAND;
+{LOR}			return LOR;
+{EQ}			return EQ;
 
 .			return yytext[0]; /* Echec de reconnaissance -> erreur OU caractères spécial (";" "," "{" "}" etc ...) */
 %%
+
+void yyerror(char const *s){
+	fprintf(stderr, "%s\n", s);
+}
