@@ -1,13 +1,26 @@
 %{
 #include <stdio.h>
+#include <stdlib.h>
 %}
 
 %union{
 	int value;
 	char* ident;
+	struct Block{
+		int length;		//Longueur du code
+		int size;		//Taille du tableau code
+		char* code;		//Tableau du code
+		char* value;		//Valeur finale du bloc (chiffre ou variable) pour les expressions.
+	} block;
 }
 
-%token <ident> IDENTIFICATEUR <value> CONSTANTE VOID INT FOR WHILE IF ELSE SWITCH CASE DEFAULT
+%{
+#include "block.h"
+%}
+
+%token <ident> IDENTIFICATEUR 
+%token <value> CONSTANTE
+%token VOID INT FOR WHILE IF ELSE SWITCH CASE DEFAULT
 %token BREAK RETURN PLUS MOINS MUL DIV LSHIFT RSHIFT BAND BOR LAND LOR LT GT 
 %token GEQ LEQ EQ NEQ NOT EXTERN
 %left PLUS MOINS
@@ -142,7 +155,6 @@ binary_comp	:
 	|	NEQ
 ;
 %%
-
 void yyerror(const char *s) { printf("Error : %s\n", s); }
 int main(){ 
 	while(yyparse()){

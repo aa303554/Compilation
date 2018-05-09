@@ -1,0 +1,54 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+
+/* Initialise un bloc à partir de rien */
+void init(struct Block *block){
+	//Taille du code initialisé à 1024
+	block->size = 1024;
+	//Initialisation à partir de rien, donc le code est nul (= 0)
+	block->length = 0;
+	//On alloue la mémoire pour le code
+	block->code = calloc(block->size, sizeof(char));
+	//On alloue la mémoire pour la valeur (utile pour les expressions);
+	block->value = calloc(103, sizeof(char));
+}
+
+/* Affiche le bloc d'instruction */
+void printBlock(struct Block *block){
+	printf("%s", block->code);
+}
+
+/* Ajoute un bloc d'instruction à un autre */
+void concat(struct Block *destination, struct Block *source){
+	int length = destination->length + source->length + 1; //ne pas oublier le "\0" de fin de chaîne
+
+	//Si le tableau n'est pas assez grand pour stocker la concaténation des deux codes, on le double.
+	while(length > destination->size){
+		destination->size = destination->size * 2;
+		char* code = calloc(destination->size, sizeof(char));
+		strcpy(code, destination->code); //on copie le code existant dans le nouveau tableau
+		destination->code = code;	 //on remplace le tableau
+	}
+	
+	//Ajoute source->code à la fin de destination->code)
+	strcat(destination->code, source->code);
+	destination->length = length;
+}
+
+/* Ajoute un morceau de code à la fin du bloc */
+void insert(struct Block *block, char* string){
+	int length = strlen(string) + block->length + 2;
+	while(length > block->size){
+		block->size = block->size * 2;
+		char* code = calloc(block->size, sizeof(char));
+		strcpy(code, block->code); //on copie le code existant dans le nouveau tableau
+		block->code = code;	 //on remplace le tableau
+	}
+	
+	//Ajoute string à la fin du code
+	strcat(block->code, string);
+	strcat(block->code, "\n\0");
+	block->length = length;
+}
