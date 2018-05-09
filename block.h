@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+int nombre_vartmp = 0; //Nombre de variable temporaire généré par le compilateur
+
 
 /* Initialise un bloc à partir de rien */
 void init(struct Block *block){
@@ -51,4 +53,12 @@ void insert(struct Block *block, char* string){
 	strcat(block->code, string);
 	strcat(block->code, "\n\0");
 	block->length = length;
+}
+
+/* Ajoute une nouvelle variable dans le code égal à l'expression */
+void new_tmp(struct Block *block, char* expr){
+	char var_name[9];
+	sprintf(var_name, "_temp%d", nombre_vartmp);
+	nombre_vartmp++;
+	insert(block, var_name);
 }
