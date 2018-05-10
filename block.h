@@ -6,7 +6,7 @@ int nombre_vartmp = 0; //Nombre de variable temporaire généré par le compilat
 
 
 /* Initialise un bloc à partir de rien */
-void init(struct Block *block){
+void init_block(struct Block *block){
 	//Taille du code initialisé à 1024
 	block->size = 1024;
 	//Initialisation à partir de rien, donc le code est nul (= 0)
@@ -15,6 +15,8 @@ void init(struct Block *block){
 	block->code = calloc(block->size, sizeof(char));
 	//On alloue la mémoire pour la valeur (utile pour les expressions);
 	block->value = calloc(103, sizeof(char));
+	//Le bloc n'est pas entouré d'accolades par défaut
+	block->bracket = 0;
 }
 
 /* Affiche le bloc d'instruction */
@@ -23,7 +25,7 @@ void printBlock(struct Block *block){
 }
 
 /* Ajoute un bloc d'instruction à un autre */
-void concat(struct Block *destination, struct Block *source){
+void concatenate_block(struct Block *destination, struct Block *source){
 	int length = destination->length + source->length + 1; //ne pas oublier le "\0" de fin de chaîne
 
 	//Si le tableau n'est pas assez grand pour stocker la concaténation des deux codes, on le double.
@@ -40,18 +42,35 @@ void concat(struct Block *destination, struct Block *source){
 }
 
 /* Ajoute un morceau de code à la fin du bloc */
-void insert(struct Block *block, char* string){
+void insert_block(struct Block *block, char* string){
 	int length = strlen(string) + block->length + 2;
 	while(length > block->size){
 		block->size = block->size * 2;
 		char* code = calloc(block->size, sizeof(char));
 		strcpy(code, block->code); //on copie le code existant dans le nouveau tableau
-		block->code = code;	 //on remplace le tableau
+		block->code = code;	   //on remplace le tableau
 	}
 	
 	//Ajoute string à la fin du code
 	strcat(block->code, string);
-	strcat(block->code, "\n\0");
+	block->length = length;
+}
+
+/* Ajoute un morceau de code au début du bloc */
+void finsert_block(struct Block *block, char* string){
+	int length = strlen(string) + block->length + 2;
+	char* code = calloc(block->size, sizeof(char));
+	strcpy(code, string);
+	string = code;
+	while(length > block->size){
+		block->size = block->size * 2;
+		char* code = calloc(block->size, sizeof(char));
+		strcpy(code, string); //on copie le code existant dans le nouveau tableau
+		string = code;	   //on remplace le tableau
+	}
+	
+	//Ajoute string à la fin du code
+	strcat(string, block->code);
 	block->length = length;
 }
 
@@ -60,5 +79,16 @@ void new_tmp(struct Block *block, char* expr){
 	char var_name[9];
 	sprintf(var_name, "_temp%d", nombre_vartmp);
 	nombre_vartmp++;
-	insert(block, var_name);
+	insert_block(block, var_name);
+}
+
+char* block_code(struct Block* block){
+	if(block->bracket != 0){
+		char* code = calloc(block->size + 6, sizeof(char));
+		strcat(code, "{\n");
+		strcat(code, block->code);
+		strcat(code, "\n}\n");
+		return code;
+	}
+	return block->code;
 }

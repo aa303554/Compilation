@@ -2,19 +2,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 extern char* yytext;
 
-struct Loop{
-	int length;
-	int size;
-	char* code;
-	char* affectation1;
-	char* condition;
-	char* affectation2;
-	char* instructions;
-	char* if_label;
-	char* else_label;
-} loop;
+/* Fait la concaténation des n chaines en paramètres dans destination. On suppose qu'on a alloué assez d'espace mémoire */
+void concatenate(char* destination, int n, ...){
+	va_list valist;
+	va_start(valist, n);
+	for(int i = 0; i < n; i++){
+		strcat(destination, va_arg(valist, char*));	
+	}
+	va_end(valist);
+}
 
 %}
 
@@ -26,13 +25,28 @@ struct Loop{
 		int size;		//Taille du tableau code
 		char* code;		//Tableau du code
 		char* value;		//Valeur finale du bloc (chiffre ou variable) pour les expressions.
+		int bracket;		//bloc entouré d'accolades ?
 	} block;
 	char* string;
 }
 
 %{
+
+struct Loop{
+	int length;
+	int size;
+	char* code;
+	struct Block* affectation1;
+	char* condition;
+	struct Block* affectation2;
+	struct Block* instructions;
+	char* if_label;
+	char* else_label;
+} loop;
+
 #include "block.h"
 #include "loop.h"
+
 %}
 
 %token <ident> IDENTIFICATEUR 
@@ -41,11 +55,12 @@ struct Loop{
 %token <string> BREAK RETURN PLUS MOINS MUL DIV LSHIFT RSHIFT BAND BOR LAND LOR LT GT 
 %token <string> GEQ LEQ EQ NEQ NOT EXTERN
 
-%type <string> affectation condition instruction selection iteration saut bloc appel variable
+%type <string> condition variable
 %type <string> binary_op binary_comp binary_rel
 %type <string> liste_expressions expression programme fonction liste_fonctions liste_instructions
 %type <string> declarateur liste_declarations type declaration liste_declarateurs
 %type <string> liste_parms parm
+%type <block> instruction iteration selection saut affectation bloc appel
 
 %left PLUS MOINS
 %left MUL DIV
@@ -59,7 +74,7 @@ struct Loop{
 %start programme
 %%
 programme	:	
-		liste_declarations liste_fonctions	{char* p = calloc(strlen($1) + strlen($2) + 1, sizeof(char)); strcat(p, $1); strcat(p, $2); $$ = p; printf("%s", $$); }
+		liste_declarations liste_fonctions	{char* p = calloc(strlen($1) + strlen($2) + 1, sizeof(char)); concatenate(p, 2, $1, $2); $$ = p; printf("%s", $$); }
 ;
 liste_declarations	:	
 		liste_declarations declaration {char* p = calloc(strlen($1) + strlen($2) + 2, sizeof(char)); strcat(p, $1); strcat(p, $2); $$ = p; }
@@ -101,56 +116,68 @@ parm	:
 |		{ $$ = "void"; }
 ;
 liste_instructions :	
-		liste_instructions instruction	{ char* p = calloc(strlen($1) +  strlen($2) + 1, sizeof(char)); strcat(p, $1); strcat(p, $2); $$ = p; }
+		liste_instructions instruction	{ char* code = block_code(&$2); char* p = calloc(strlen($1) +  strlen(code) + 1, sizeof(char)); strcat(p, $1); strcat(p, code); $$ = p; }
 	|	{ $$ = ""; }
 ;
 instruction	:	
 		iteration	{ $$ = $1; }
 	|	selection	{ $$ = $1; }
 	|	saut		{ $$ = $1; }
-	|	affectation ';'	{ char* p = calloc(strlen($1) + 3, sizeof(char)); strcat(p, $1); strcat(p, ";"); $$ = p;}
+	|	affectation ';'	{ insert_block(&$1, ";\n"); $$ = $1; }
 	|	bloc		{ $$ = $1; }
 	|	appel		{ $$ = $1; }
 ;
 iteration	:	
-		FOR '(' affectation ';' condition ';' affectation ')' instruction	{ init_loop(&loop); create(&loop, $3, $5, $7, $9); $$ = loop.code; }
-	|	WHILE '(' condition ')' instruction					{ init_loop(&loop); create(&loop, "i=0", $3, "i++", $5); $$ = loop.code; }
+		FOR '(' affectation ';' condition ';' affectation ')' instruction	{ init_loop(&loop); create(&loop, &$3, $5, &$7, &$9); init_block(&$$); insert_block(&$$, loop.code); }
+	|	WHILE '(' condition ')' instruction					{ init_loop(&loop); create(&loop, &$5, "", &$5, &$5); init_block(&$$); insert_block(&$$, loop.code); }
 ;
 selection	:	
 		IF '(' condition ')' instruction %prec THEN
-		{	char* p = calloc(strlen($1) + strlen($3) + strlen($5) + 3, sizeof(char));
-			strcat(p, $1); strcat(p, "("); strcat(p, $3);
-			strcat(p, ")"); strcat(p, $5); $$ = p; }
+		{	
+			init_block(&$$); char* header = calloc(strlen($3) + 6, sizeof(char)); concatenate(header, 3, "if (", $3, ")"); 
+			insert_block(&$$, header);
+			concatenate_block(&$$, &$5);
+		}
 	|	IF '(' condition ')' instruction ELSE instruction
-		{	char* p = calloc(strlen($1) + strlen($3) + strlen($5) + strlen($6) + strlen($7) + 3, sizeof(char));
-			strcat(p, $1); strcat(p, "("); strcat(p, $3);
-			strcat(p, ")"); strcat(p, $5); strcat(p, $6); strcat(p, $7); $$ = p; }
+		{
+			init_block(&$$); char* header = calloc(strlen($3) + 6, sizeof(char)); concatenate(header, 3, "if (", $3, ")"); 
+			insert_block(&$$, header);
+			concatenate_block(&$$, &$5);
+			insert_block(&$$, "else");
+			concatenate_block(&$$, &$7);
+		}
 	|	SWITCH '(' expression ')' instruction
-		{	char* p = calloc(strlen($1) + strlen($3) + strlen($5) + 3, sizeof(char));
-			strcat(p, $1); strcat(p, "("); strcat(p, $3);
-			strcat(p, ")"); strcat(p, $5); $$ = p; }
+		{
+			init_block(&$$); char* header = calloc(strlen($3) + 10, sizeof(char)); concatenate(header, 3, "switch (", $3, ")"); 
+			insert_block(&$$, header);
+			concatenate_block(&$$, &$5);
+		}
 	|	CASE CONSTANTE ':' instruction
-		{	char* p = calloc(strlen($1) + strlen($2) + strlen($4) + 2, sizeof(char));
-			strcat(p, $1); strcat(p, $2);
-			strcat(p, ":"); strcat(p, $4); $$ = p; }
+		{
+			init_block(&$$); char* header = calloc(strlen($2) + 6, sizeof(char)); concatenate(header, 3, "case ", $2, ":"); 
+			insert_block(&$$, header);
+			concatenate_block(&$$, &$4);
+		}
 	|	DEFAULT ':' instruction
-		{	char* p = calloc(strlen($1) + strlen($3) + 2, sizeof(char));
-			strcat(p, $1); strcat(p, ":"); strcat(p, $3);
-			$$ = p; }
+		{
+			init_block(&$$); char* header = calloc(8, sizeof(char)); concatenate(header, 1, "default:"); 
+			insert_block(&$$, header);
+			concatenate_block(&$$, &$3);
+		}
 ;
 saut	:	
-		BREAK ';'		{ $$ = "break;"; }
-	|	RETURN ';'		{ $$ = "return;"; }
-	|	RETURN expression ';'	{ char* p = calloc(strlen($2) + 9, sizeof(char)); strcat(p, "return "); strcat(p, $2); strcat(p, ";\n"); $$ = p; }
+		BREAK ';'		{ init_block(&$$); insert_block(&$$, "break;\n"); }
+	|	RETURN ';'		{ init_block(&$$); insert_block(&$$, "return;\n"); }
+	|	RETURN expression ';'	{ init_block(&$$); char* p = calloc(strlen($2) + 9, sizeof(char)); concatenate(p, 3, "return ", $2, ";\n"); insert_block(&$$, p); }
 ;
 affectation	:	
-		variable '=' expression		{ char* p = calloc(strlen($1) + strlen($3) + 2, sizeof(char)); strcat(p, $1); strcat(p, "="); strcat(p, $3); $$ = p; }
+		variable '=' expression		{ init_block(&$$); char* p = calloc(strlen($1) + 2, sizeof(char)); concatenate(p, 2, $1, "="); insert_block(&$$, p); insert_block(&$$, $3); }
 ;
 bloc	:	
-		'{' liste_declarations liste_instructions '}'		{ char* p = calloc(strlen($2) + strlen($3) + 6, sizeof(char)); strcat(p, "{\n"); strcat(p, $2); strcat(p, $3); strcat(p, "\n}\n"); $$ = p; }
+		'{' liste_declarations liste_instructions '}'		{ char* p = calloc(strlen($2) + strlen($3) + 6, sizeof(char)); concatenate(p, 2, $2, $3); init_block(&$$); $$.bracket = 1; insert_block(&$$, p); }
 ;
 appel	:	
-		IDENTIFICATEUR '(' liste_expressions ')' ';'	{char* p = calloc(strlen($1) + strlen($3) + 4, sizeof(char)); strcat(p, $1); strcat(p, "("); strcat(p, $3); strcat(p, ");"); $$ = p;}
+		IDENTIFICATEUR '(' liste_expressions ')' ';'	{char* p = calloc(strlen($1) + strlen($3) + 4, sizeof(char)); concatenate(p, 4, $1, "(", $3, ");\n"); init_block(&$$); insert_block(&$$, p);}
 ;
 variable	:	
 		IDENTIFICATEUR			{$$ = $1;}

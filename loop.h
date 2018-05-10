@@ -31,26 +31,28 @@ void build(struct Loop *loop){
 	//On créer le bas de la boucle (e : goto L1)
 	int footer_length = strlen(loop->if_label) + 8 + strlen(loop->else_label);
 	char* footer = calloc(footer_length, sizeof(char));
-	sprintf(footer, "goto %s;\n%s:", loop->if_label, loop->else_label);
+	sprintf(footer, "goto %s;", loop->if_label);
 
 	//On assemble le code
-	int length = strlen(header) + strlen(footer) + strlen(loop->instructions) + strlen(loop->affectation1) + strlen(loop->affectation2);
+	int length = strlen(header) + strlen(footer) + strlen(loop->instructions->code) + strlen(loop->affectation1->code) + strlen(loop->affectation2->code);
 	char* code = calloc(loop->size, sizeof(char));
 	while(loop->size < length){
 		loop->size = loop->size * 2;
 		char* code = calloc(loop->size, sizeof(char));
 		loop->code = code;
 	}
-	strcat(loop->code, loop->affectation1);
+	insert_block(loop->affectation2, ";\n");
+	concatenate_block(loop->instructions, loop->affectation2);
+	insert_block(loop->instructions, footer);
+	strcat(loop->code, block_code(loop->affectation1));
 	strcat(loop->code, ";\n");
 	strcat(loop->code, header);
-	strcat(loop->code, loop->instructions);
-	strcat(loop->code, loop->affectation2);
-	strcat(loop->code, "\n");
-	strcat(loop->code, footer);
+	strcat(loop->code, block_code(loop->instructions));
+	strcat(loop->code, loop->else_label);
+	strcat(loop->code, ":");
 }
 
-void create(struct Loop *loop, char* affectation1, char* condition, char* affectation2, char* instructions){
+void create(struct Loop *loop, struct Block* affectation1, char* condition, struct Block* affectation2, struct Block* instructions){
 	loop->affectation1 = affectation1;
 	loop->condition = condition;
 	loop->affectation2 = affectation2;
