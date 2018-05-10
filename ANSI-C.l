@@ -1,5 +1,18 @@
 %{
+#include <stdlib.h>
 #include "y.tab.h"
+
+void save_ident(char* ident){
+	char* p = calloc(strlen(ident)+1, sizeof(char));
+	strcpy(p, ident);
+	yylval.ident = p;
+}
+void save_value(char* value){
+	char* p = calloc(strlen(value)+1, sizeof(char));
+	strcpy(p, value);
+	yylval.value = p;
+}
+
 %}
 
 %option noyywrap
@@ -92,7 +105,7 @@ COMMENTAIRES	("/"+"\*"+(.[^\*/]|{WHITESPACE})*"\*"+"/"+|"//".*\n)
 {BREAK}			return BREAK;
 {EXTERN}		return EXTERN;
 
-{INTEGER}		yylval.value = atoi(yytext); return CONSTANTE;
+{INTEGER}		save_value(yytext); return CONSTANTE;
 {REAL}			return CONSTANTE;
 {HEXA}			return CONSTANTE;
 {EXP}			return CONSTANTE;
@@ -100,7 +113,7 @@ COMMENTAIRES	("/"+"\*"+(.[^\*/]|{WHITESPACE})*"\*"+"/"+|"//".*\n)
 {INT}			return INT;
 {VOID}			return VOID;
 
-{IDENTIFICATEUR} 	yylval.ident = yytext; return IDENTIFICATEUR;
+{IDENTIFICATEUR} 	save_ident(yytext); return IDENTIFICATEUR;
 
 {PLUS}			return PLUS;
 {MOINS}			return MOINS;
