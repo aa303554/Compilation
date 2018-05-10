@@ -83,7 +83,7 @@ declarateur	:
 fonction	:	
 		type IDENTIFICATEUR '(' liste_parms ')' '{' liste_declarations liste_instructions '}'{ 
 			char* p = calloc(strlen($1) + strlen($2) + strlen($4) + strlen($7) + strlen($8) + 8, sizeof(char));
-			strcat(p, $1); strcat(p, " "); strcat(p, $2); strcat(p, "("); strcat(p, $4); strcat(p, "){\n"); strcat(p, $7); strcat(p, $8); strcat(p, "\n}\n"); $$ = p; }
+			strcat(p, $1); strcat(p, " "); strcat(p, $2); strcat(p, "("); strcat(p, $4); strcat(p, "){\n"); strcat(p, $7); strcat(p, $8); strcat(p, "}\n"); $$ = p; }
 
 	|	EXTERN type IDENTIFICATEUR '(' liste_parms ')' ';'	{ char* p = calloc(strlen($2) + strlen($3) + strlen($5) + 12, sizeof(char));
 			strcat(p, "extern "); strcat(p, $2); strcat(p, " "); strcat(p, $3); strcat(p, "("); strcat(p, $5); strcat(p, ");\n"); $$ = p; }
@@ -108,7 +108,7 @@ instruction	:
 		iteration	{ $$ = $1; }
 	|	selection	{ $$ = $1; }
 	|	saut		{ $$ = $1; }
-	|	affectation ';'	{ char* p = calloc(strlen($1) + 3, sizeof(char)); strcat(p, $1); strcat(p, ";\n"); $$ = p;}
+	|	affectation ';'	{ char* p = calloc(strlen($1) + 3, sizeof(char)); strcat(p, $1); strcat(p, ";"); $$ = p;}
 	|	bloc		{ $$ = $1; }
 	|	appel		{ $$ = $1; }
 ;
