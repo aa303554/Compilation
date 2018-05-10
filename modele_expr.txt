@@ -1,0 +1,36 @@
+i = (i+k) + calcul(x, y);
+
+----->
+declarations :
+int _t2;
+int _t1;
+
+code :
+_t1 = i + k;
+_t2 = calcul(x, y);
+i = _t1 + _t2;
+
+=========================================================
+
+i = fonction(2*c) + k * 4;
+
+----->
+declarations :
+int _t3;
+int _t2;
+int _t1;
+
+code :
+_t1 = 2 * c;
+_t2 = fonction(_t1);
+_t3 = k * 4;
+i = _t2 + _t3;
+
+
+
+
+
+AJOUT A UN BLOC :
+
+finsert_block(block*, expr->declarations);
+insert_block(block*, expr->code);
