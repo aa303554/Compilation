@@ -1,5 +1,3 @@
-int variables_temporaires = 0;  //nombre de variables temporaires
-
 struct Arbre{
 	char* racine;	//symbole de la racine. ex : "*", "+", "variable", "4", etc...
 	Arbre* gauche;	//fils gauche. null si pas de fils (-> la racine n'est pas une opération)
