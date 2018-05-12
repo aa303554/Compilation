@@ -2,11 +2,11 @@ int variables_temporaires = 0;  //nombre de variables temporaires
 
 struct Arbre{
 	char* racine;	//symbole de la racine. ex : "*", "+", "variable", "4", etc...
-	Arbre* gauche;	//fils gauche. null si pas de fils (-> la racine n'est pas une opération)
-	Arbre* droit;	//file droit. null si pas de fils (-> la racine n'est pas une opération)
-	int feuille;	//booléen. 0 si ce n'est pas une feuille, 1 si c'est une feuille
+	Arbre* gauche;	//fils gauche. null si pas de fils (-> la racine n'est pas une opÃ©ration)
+	Arbre* droit;	//file droit. null si pas de fils (-> la racine n'est pas une opÃ©ration)
+	int feuille;	//boolÃ©en. 0 si ce n'est pas une feuille, 1 si c'est une feuille
 	char* value;	//evaluation de l'arbre.
-	char* variable;	//nom de la variable dans laquelle est stockée le resultat de l'expression. Si la racine est une opération, alors value prend la valeur d'une variable temporaire.
+	char* variable;	//nom de la variable dans laquelle est stockÃ©e le resultat de l'expression. Si la racine est une opÃ©ration, alors value prend la valeur d'une variable temporaire.
 }
 
 //Initialise l'arbre
@@ -16,7 +16,7 @@ void init_arbre(struct Arbre* arbre, char* variable, char* racine, struct Arbre*
 	arbre->gauche = gauche;
 	arbre->droit = droit;
 	arbre->feuille = (gauche == null) && (droit == null);
-	char* value = ""
+	char* value = "";
 }
 
 //Renvoie la valeur d'un arbre.
@@ -27,14 +27,14 @@ char* arbre_getValue(struct Arbre* arbre){
 	return arbre->variable;
 }
 
-//Evalue l'arbre. Rajoute de façon dynamique le code évalué dans l'expression.
+//Evalue l'arbre. Rajoute de faÃ§on dynamique le code Ã©valuÃ© dans l'expression.
 void arbre_eval(struct Arbre* arbre, struct Expression *expr){
 	if(arbre->feuille){
 		arbre->value = arbre->racine;
 	} else {
 		arbre_eval(arbre->gauche);
 		arbre_eval(arbre->droit);
-		//si l'arbre n'est pas celui de départ, alors on doit lui rajouter une variable temporaire
+		//si l'arbre n'est pas celui de dÃ©part, alors on doit lui rajouter une variable temporaire
 		if(arbre->variable == ""){
 			arbre->variable == new_tmp(expr);	//fonction d'expression.h pour ajouter une variable temporaire;
 		}
@@ -44,7 +44,7 @@ void arbre_eval(struct Arbre* arbre, struct Expression *expr){
 		char* value = calloc(strlen(arbre->variable) + strlen(gauche) + strlen(droite) + strlen(racine) + 3, sizeof(char));
 		concatenate(value, 5, arbre->variable, "=", gauche, racine, droite, ";");
 		arbre->value = value;
-		//ajoute l'évaluation de l'arbre à l'expression
+		//ajoute l'Ã©valuation de l'arbre Ã  l'expression
 		expr_insert(expr, arbre->value);
 	}
 }
