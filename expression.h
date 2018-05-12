@@ -3,21 +3,23 @@
 #include <string.h>
 
 struct Expression{
-	int size;				//taille maximale du code
+	int size;			//taille maximale du code
 	int decl_size;			//taille maximale des déclarations
-	int length;				//taille du code
+	int length;			//taille du code
 	int decl_length;		//taille des déclarations
 	int temp_var;			//nombre de variables temporaires créés
 	
 	char* declarations;		//code des déclarations
-	char* code;				//code du corps de l'expression
-}
+	char* code;			//code du corps de l'expression
+	char* final_value;		//valeur finale de l'expression
+} expr;
+
 
 void init_expr(struct Expression *expr){
 	expr->size = 1024;
 	expr->decl_size = 512;
 	expr->length = 0;
-	epxr->decl_length = 0;
+	expr->decl_length = 0;
 	expr->temp_var = 0;
 	
 	expr->declarations = calloc(expr->decl_size, sizeof(char));
@@ -56,7 +58,7 @@ void expr_insert(struct Expression *expr, char* string){
 }
 
 /* Ajoute une nouvelle variable temporaire à l'expression et renvoie sa valeur */
-char* new_tmp(struct Expression *expr){
+char* new_var(struct Expression *expr){
 	char* var_name = calloc(4, sizeof(char));
 	expr->temp_var++;
 	sprintf(var_name, "_t%d", expr->temp_var);
