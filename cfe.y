@@ -51,24 +51,8 @@ struct Arbre{
 }
 
 %{
-
-struct Loop{
-	int length;
-	int size;
-	char* declarations;
-	char* code;
-	struct Block* affectation1;
-	char* condition;
-	struct Block* affectation2;
-	struct Block* instructions;
-	char* if_label;
-	char* else_label;
-} loop;
-
 #include "block.h"
-#include "loop.h"
 #include "arbre.h"
-
 %}
 
 %token <ident> IDENTIFICATEUR 
@@ -184,7 +168,9 @@ iteration	:
 			char* code = block_code(&$9);
 			insert_block(&$$, code);
 		}
-	|	WHILE '(' condition ')' instruction					{ init_loop(&loop); create(&loop, &$5, "", &$5, &$5); init_block(&$$); insert_block(&$$, loop.code); }
+	|	WHILE '(' condition ')' instruction					{
+			init_block(&$$);
+		}
 ;
 selection	:	
 		IF '(' condition ')' instruction %prec THEN

@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+int label_number = 0; //Nombre d'étiquettes créées par le compilateur
+
 /* Initialise un bloc à partir de rien */
 void init_block(struct Block *block){
 	//Taille des déclarations initialisé à 1024
@@ -115,6 +117,14 @@ void finsert_block(struct Block *block, char* string){
 void concatenate_block(struct Block *destination, struct Block *source){
 	insert_block(destination, source->code);
 	dinsert_block(destination, source->declarations);
+}
+
+/* Fourni une nouvelle étiquette */
+char* new_label(){
+	char* label = calloc(4, sizeof(char));
+	label_number++;
+	sprintf(label, "L%d", label_number);
+	return label;
 }
 
 /* Ajoute une nouvelle variable dans le code et retourne sa valeur */
