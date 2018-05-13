@@ -11,7 +11,7 @@ struct Expression{
 	
 	char* declarations;		//code des déclarations
 	char* code;			//code du corps de l'expression
-	char* final_value;		//valeur finale de l'expression
+	char* value;			//valeur finale de l'expression
 } expr;
 
 
@@ -24,6 +24,7 @@ void init_expr(struct Expression *expr){
 	
 	expr->declarations = calloc(expr->decl_size, sizeof(char));
 	expr->code = calloc(expr->size, sizeof(char));
+	expr->value = "";
 }
 
 

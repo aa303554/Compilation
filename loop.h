@@ -42,12 +42,12 @@ void build(struct Loop *loop){
 		loop->code = code;
 	}
 	insert_block(loop->affectation2, ";\n");
-	concatenate_block(loop->instructions, loop->affectation2);
-	insert_block(loop->instructions, footer);
 	strcat(loop->code, block_code(loop->affectation1));
 	strcat(loop->code, ";\n");
 	strcat(loop->code, header);
 	strcat(loop->code, block_code(loop->instructions));
+	strcat(loop->code, loop->affectation2->code);
+	strcat(loop->code, footer);
 	strcat(loop->code, loop->else_label);
 	strcat(loop->code, ":");
 }
