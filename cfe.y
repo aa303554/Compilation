@@ -170,6 +170,25 @@ iteration	:
 		}
 	|	WHILE '(' condition ')' instruction	{
 			init_block(&$$);
+			//on génère les labels
+			char* if_label = new_label(); char* else_label = new_label();
+
+			/* Génère l'entête de la boucle */
+			int header_length = strlen(if_label) + strlen($3) + strlen(else_label) + 14;
+			char* header = calloc(header_length, sizeof(char));
+			sprintf(header, "%s: if %s goto %s;\n", if_label, $3, else_label);
+
+			/* Génère le pied de la boucle goto) */
+			struct Block* footer = calloc(1, sizeof(struct Block));
+			init_block(footer);
+			insert_block(footer, "goto "); insert_block(footer, if_label); insert_block(footer, ";\n");
+			insert_block(footer, else_label); insert_block(footer, ": ");
+			link_block(&$5, footer);
+
+			/* On assemble le code */
+			insert_block(&$$, header);
+			char* code = block_code(&$5);
+			insert_block(&$$, code);
 		}
 ;
 selection	:	
