@@ -291,7 +291,8 @@ expression	:
 	|	expression binary_op expression %prec OP	{ 
 			init_block(&$$);
 			init_arbre(&$$, "", $2, $1.arbre, $3.arbre);
-			arbre_eval($$.arbre, &$$);
+			//arbre_eval($$.arbre, &$$);
+			printArbre($$.arbre, 0);
 		}
 	|	MOINS expression	{
 			init_block(&$$);
@@ -304,12 +305,12 @@ expression	:
 	|	CONSTANTE	{
 			init_block(&$$);
 			init_arbre(&$$, "", $1, NULL, NULL);
-			arbre_eval($$.arbre, &$$);
+			//arbre_eval($$.arbre, &$$);
 		}
 	|	variable	{
 			init_block(&$$);
 			init_arbre(&$$, "", $1.value, NULL, NULL);
-			arbre_eval($$.arbre, &$$);
+			//arbre_eval($$.arbre, &$$);
 			insert_block(&$$, $1.code);
 			//insert_block(&$$, $1.value);
 			dinsert_block(&$$, $1.declarations);
