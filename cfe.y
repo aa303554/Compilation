@@ -69,13 +69,13 @@ struct Arbre{
 %type <block> liste_instructions instruction iteration selection saut affectation bloc appel liste_expressions expression variable
 
 %left PLUS MOINS
+%left OP
 %left MUL DIV
 %left LSHIFT RSHIFT
 %left BOR BAND
 %left LAND LOR
 %nonassoc THEN
 %nonassoc ELSE
-%left OP
 %left REL
 %start programme
 %%
@@ -168,7 +168,7 @@ iteration	:
 			char* code = block_code(&$9);
 			insert_block(&$$, code);
 		}
-	|	WHILE '(' condition ')' instruction					{
+	|	WHILE '(' condition ')' instruction	{
 			init_block(&$$);
 		}
 ;
@@ -292,7 +292,7 @@ expression	:
 			init_block(&$$);
 			init_arbre(&$$, "", $2, $1.arbre, $3.arbre);
 			//arbre_eval($$.arbre, &$$);
-			printArbre($$.arbre, 0);
+			//printArbre($$.arbre, 0);
 		}
 	|	MOINS expression	{
 			init_block(&$$);
@@ -338,7 +338,7 @@ condition	:
 		NOT '(' condition ')'	{ char* res = calloc(strlen($3) + 4, 1); strcat(res, "!("); strcat(res, $3); strcat(res, ")"); $$ = res;}
 	|	condition binary_rel condition %prec REL { char* res = calloc(strlen($1) + strlen($2) + strlen($3) + 1, 1); strcat(res, $1); strcat(res, $2); strcat(res, $3); $$ = res; }
 	|	'(' condition ')'	{ char* res = calloc(strlen($2) + 3, 1); strcat(res, "("); strcat(res, $2); strcat(res, ")"); $$ = res;}
-	|	expression binary_comp expression { char* res = calloc(strlen($1.value) + strlen($2) + strlen($3.value) + 1, 1); concatenate(res, 3, $1.value, $2, $3.value); $$ = res;}
+	|	expression binary_comp expression { arbre_eval($1.arbre, &$1); arbre_eval($3.arbre, &$3); char* res = calloc(strlen($1.value) + strlen($2) + strlen($3.value) + 1, 1); concatenate(res, 3, $1.value, $2, $3.value); $$ = res;}
 ;
 binary_op	:	
 		PLUS	{ $$ = "+"; }

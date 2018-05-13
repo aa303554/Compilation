@@ -11,6 +11,23 @@ void init_arbre(struct Block* block, char* variable, char* racine, struct Arbre*
 	block->arbre = arbre;
 }
 
+void printArbre(struct Arbre* arbre, int indent){
+	char* indentation = calloc(indent, sizeof(char));
+	for(int i = 0; i < indent; i++){
+		strcat(indentation, "\t");	
+	}
+	printf("%sPERE : %s\n", indentation, arbre->racine);
+	indent++;
+	if(arbre->gauche != NULL){
+		printf("%sFILS GAUCHE :\n", indentation);
+		printArbre(arbre->gauche,indent);
+	}
+	if(arbre->droit != NULL){
+		printf("%sFILS DROIT :\n", indentation);
+		printArbre(arbre->droit,indent);
+	}
+}
+
 //Renvoie la valeur d'un arbre.
 char* arbre_getValue(struct Arbre* arbre){
 	if(arbre->feuille != 0){
@@ -24,8 +41,10 @@ void arbre_eval(struct Arbre* arbre, struct Block *block){
 	if(arbre->feuille == 0){
 		char* gauche = "";
 		char* droit = "";
+		arbre->gauche->isReturn = 1;
 		arbre_eval(arbre->gauche, block);
 		gauche = arbre_getValue(arbre->gauche);
+		arbre->droit->isReturn = 1;
 		arbre_eval(arbre->droit, block);
 		droit = arbre_getValue(arbre->droit);
 		if(arbre->isReturn != 0 || !(arbre->gauche->feuille != 0 && arbre->droit->feuille != 0)){
