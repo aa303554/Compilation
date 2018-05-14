@@ -208,6 +208,9 @@ selection	:
 		{	
 			init_block(&$$);
 			arbre_eval($3.arbre, &$3);
+			insert_block(&$$, $3.code);
+			dinsert_block(&$$, $3.declarations);
+			$5.bracket = 1;
 			char* header = calloc(strlen($3.value) + 6, sizeof(char)); concatenate(header, 3, "if (", $3.value, ")"); 
 			insert_block(&$$, header);
 			concatenate_block(&$$, &$5);
@@ -215,12 +218,33 @@ selection	:
 	|	IF '(' condition ')' instruction ELSE instruction
 		{
 			init_block(&$$);
+			$3.arbre->parenthesis = 1;
+			$3.arbre->antiarbre = 1;
 			arbre_eval($3.arbre, &$3);
-			char* header = calloc(strlen($3.value) + 6, sizeof(char)); concatenate(header, 3, "if (", $3.value, ")"); 
+			//on génère les labels
+			char* if_label = new_label(); char* else_label = new_label();
+			//on insère les déclarations si besoin
+			dinsert_block(&$$, $3.declarations);
+			insert_block(&$$, $3.code);
+			
+			/* Génère l'entête de la boucle */
+			int header_length = strlen($3.value) + strlen(if_label) + 15;
+			char* header = calloc(header_length, sizeof(char));
+			sprintf(header, "if %s goto %s;\n", $3.value, if_label);
+
+			/* Génère le pied de la boucle goto) */
+			struct Block* footer = calloc(1, sizeof(struct Block));
+			init_block(footer);
+			insert_block(footer, "goto "); insert_block(footer, else_label); insert_block(footer, ";\n");
+			insert_block(footer, if_label); insert_block(footer, ": ");
+			link_block(&$5, footer);
+			link_block(footer, &$7);
+			insert_block(&$7, else_label); insert_block(&$7, ": ");
+
+			/* On assemble le code */
 			insert_block(&$$, header);
-			concatenate_block(&$$, &$5);
-			insert_block(&$$, "else");
-			concatenate_block(&$$, &$7);
+			char* code = block_code(&$5);
+			insert_block(&$$, code);
 		}
 	|	SWITCH '(' expression ')' instruction
 		{
@@ -321,30 +345,31 @@ variable	:
 ;
 expression	:	
 		'(' expression ')'	{
-			init_block(&$$);
-			dinsert_block(&$$, $2.declarations);
-			insert_block(&$$, $2.code);
-			$$.value = $2.value;
-			$$.arbre = $2.arbre;
+			$$ = $2;
+			//on lève le flag indicant que la valeur doit être entre parenthèses
 			$$.arbre->parenthesis = 1;
 		}
 	|	expression binary_op expression %prec OP	{ 
 			init_block(&$$);
+			//on construit simplement l'arbre à partir du fils gauche et du fils droit
 			init_arbre(&$$, "", $2, $1.arbre, $3.arbre);
 			//arbre_eval($$.arbre, &$$);
 			//printArbre($$.arbre, 0);
 		}
 	|	MOINS expression	{
 			$$ = $2;
+			//on lève le flag de la négation de l'expression (expression est sous forme d'arbre)
 			$$.arbre->minus = 1;
 		}
 	|	CONSTANTE	{
 			init_block(&$$);
+			//on construit l'arbre dont la racine est la valeur de la constante
 			init_arbre(&$$, "", $1, NULL, NULL);
 			//arbre_eval($$.arbre, &$$);
 		}
 	|	variable	{
 			init_block(&$$);
+			//on construit l'arbre (plutôt la feuille) dont la racine est la valeur de la variable (son nom)
 			init_arbre(&$$, "", $1.value, NULL, NULL);
 			//arbre_eval($$.arbre, &$$);
 			insert_block(&$$, $1.code);
@@ -354,7 +379,9 @@ expression	:
 		}
 	|	IDENTIFICATEUR '(' liste_expressions ')'	{
 			init_block(&$$);
+			//On ajoute les déclarations ainsi que le code de la liste des expressions (au cas où l'évaluation de l'arbre des expressions a engendré des var temp)
 			insert_block(&$$, $3.code); dinsert_block(&$$, $3.declarations);
+			//On créer la valeur du bloc, qui est égal à identificateur(liste_expressions)
 			char* p = calloc(strlen($1) + strlen($3.value) + 3, sizeof(char)); concatenate(p, 4, $1, "(", $3.value, ")");
 			$$.value = p;
 		}
@@ -363,7 +390,9 @@ liste_expressions	:
 		liste_expressions ',' expression	{
 			init_block(&$$);
 			//insert_block(&$$, $1.code); insert_block(&$$, $3.code);
+			//On ajoute les déclarations des expressions au bloc
 			dinsert_block(&$$, $1.declarations); dinsert_block(&$$, $3.declarations);
+			//La valeur du bloc est la liste des expressions incrémenté de la dernière expression ajoutée
 			char* p = calloc(strlen($1.value) + strlen($3.value) + 2, sizeof(char)); concatenate(p, 3, $1.value, ",", $3.value);
 			$$.value = p;
 		}
@@ -372,29 +401,24 @@ liste_expressions	:
 ;
 condition	:	
 		NOT '(' condition ')'	{
-			init_block(&$$);
-			dinsert_block(&$$, $3.declarations);
-			insert_block(&$$, $3.code);
-			$$.value = $3.value;
-			$$.arbre = $3.arbre;
+			$$ = $3;
+			//la valeur final est une négation et doit être entre parenthèses
 			$$.arbre->isnot = 1;
 			$$.arbre->parenthesis = 1;
 		}
 	|	condition binary_rel condition %prec REL { 
 			init_block(&$$);
+			//on construit simplement l'arbre
 			init_arbre(&$$, "", $2, $1.arbre, $3.arbre);
-			$$.arbre->isReturn = 1;
 		}
 	|	'(' condition ')'	{ 
-			init_block(&$$);
-			dinsert_block(&$$, $2.declarations);
-			insert_block(&$$, $2.code);
-			$$.value = $2.value;
-			$$.arbre = $2.arbre;
+			$$ = $2;
+			//la valeur final doit être entre parenthèses
 			$$.arbre->parenthesis = 1;
 		}
 	|	expression binary_comp expression { 
 			init_block(&$$);
+			//on construit simplement l'arbre
 			init_arbre(&$$, "", $2, $1.arbre, $3.arbre);
 		}
 ;
