@@ -207,13 +207,30 @@ selection	:
 		IF '(' condition ')' instruction %prec THEN
 		{	
 			init_block(&$$);
+			$3.arbre->parenthesis = 1;
+			$3.arbre->antiarbre = 1;
 			arbre_eval($3.arbre, &$3);
-			insert_block(&$$, $3.code);
+			//on génère le label
+			char* else_label = new_label();
+			//on insère les déclarations si besoin
 			dinsert_block(&$$, $3.declarations);
-			$5.bracket = 1;
-			char* header = calloc(strlen($3.value) + 6, sizeof(char)); concatenate(header, 3, "if (", $3.value, ")"); 
+			insert_block(&$$, $3.code);
+			
+			/* Génère l'entête de la selection */
+			int header_length = strlen($3.value) + strlen(else_label) + 15;
+			char* header = calloc(header_length, sizeof(char));
+			sprintf(header, "if %s goto %s;\n", $3.value, else_label);
+
+			/* Génère le pied de la boucle selection */
+			struct Block* footer = calloc(1, sizeof(struct Block));
+			init_block(footer);
+			insert_block(footer, else_label); insert_block(footer, ": ");
+
+			/* On assemble le code */
+			link_block(&$5, footer);
 			insert_block(&$$, header);
-			concatenate_block(&$$, &$5);
+			char* code = block_code(&$5);
+			insert_block(&$$, code);
 		}
 	|	IF '(' condition ')' instruction ELSE instruction
 		{
@@ -227,21 +244,22 @@ selection	:
 			dinsert_block(&$$, $3.declarations);
 			insert_block(&$$, $3.code);
 			
-			/* Génère l'entête de la boucle */
+			/* Génère l'entête de la selection */
 			int header_length = strlen($3.value) + strlen(if_label) + 15;
 			char* header = calloc(header_length, sizeof(char));
 			sprintf(header, "if %s goto %s;\n", $3.value, if_label);
 
-			/* Génère le pied de la boucle goto) */
+			/* Génère le pied de la selection (goto) */
 			struct Block* footer = calloc(1, sizeof(struct Block));
 			init_block(footer);
 			insert_block(footer, "goto "); insert_block(footer, else_label); insert_block(footer, ";\n");
 			insert_block(footer, if_label); insert_block(footer, ": ");
-			link_block(&$5, footer);
-			link_block(footer, &$7);
-			insert_block(&$7, else_label); insert_block(&$7, ": ");
+			insert_block(&$7, else_label);
+			insert_block(&$7, ": ");
 
 			/* On assemble le code */
+			link_block(&$5, footer);
+			link_block(footer, &$7);
 			insert_block(&$$, header);
 			char* code = block_code(&$5);
 			insert_block(&$$, code);
