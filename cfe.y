@@ -24,6 +24,10 @@ struct Arbre{
 	char* variable;	//nom de la variable dans laquelle est stockée le resultat de l'expression. Si la racine est une opération, alors value prend la valeur d'une variable temporaire.
 	int isReturn;	//si l'expression doit retourner une nouvelle variable quoiqu'il arrive
 	int minus;	//si l'expression est négative
+	int parenthesis;
+	int isnot;
+	char* antiracine;
+	int antiarbre;
 };
 
 %}
@@ -49,6 +53,8 @@ struct Arbre{
 		struct Block* precedent;//bloc précédent
 		struct Block* suivant;	//bloc suivant
 		struct Arbre* arbre;	//arbre de représentation pour les expressions
+
+		char* last_label;
 	} block;
 	char* string;
 }
@@ -64,12 +70,11 @@ struct Arbre{
 %token <string> BREAK RETURN PLUS MOINS MUL DIV LSHIFT RSHIFT BAND BOR LAND LOR LT GT 
 %token <string> GEQ LEQ EQ NEQ NOT EXTERN
 
-%type <string> condition
 %type <string> binary_op binary_comp binary_rel
 %type <string> programme fonction liste_fonctions
 %type <string> declarateur liste_declarations type declaration liste_declarateurs
 %type <string> liste_parms parm
-%type <block> liste_instructions instruction iteration selection saut affectation bloc appel liste_expressions expression variable
+%type <block> liste_instructions instruction iteration selection saut affectation bloc appel liste_expressions expression variable condition
 
 %left PLUS MOINS
 %left OP
@@ -147,14 +152,17 @@ instruction	:
 iteration	:	
 		FOR '(' affectation ';' condition ';' affectation ')' instruction	{
 			init_block(&$$);
+			$5.arbre->parenthesis = 1;
+			$5.arbre->antiarbre = 1;
+			arbre_eval($5.arbre, &$5);
 			//on génère les labels
 			char* if_label = new_label(); char* else_label = new_label();
 			//on insère les déclarations si besoin
 			dinsert_block(&$$, $3.declarations); dinsert_block(&$$, $7.declarations);
 			/* Génère l'entête de la boucle */
-			int header_length = strlen(if_label) + strlen($5) + strlen(else_label) + 17;
+			int header_length = strlen(if_label) + strlen($5.value) + strlen(else_label) + 17;
 			char* header = calloc(header_length, sizeof(char));
-			sprintf(header, "%s: if !(%s) goto %s;\n", if_label, $5, else_label);
+			sprintf(header, "%s: if %s goto %s;\n", if_label, $5.value, else_label);
 
 			/* Génère le pied de la boucle goto) */
 			struct Block* footer = calloc(1, sizeof(struct Block));
@@ -173,13 +181,14 @@ iteration	:
 		}
 	|	WHILE '(' condition ')' instruction	{
 			init_block(&$$);
+			arbre_eval($3.arbre, &$3);
 			//on génère les labels
 			char* if_label = new_label(); char* else_label = new_label();
 
 			/* Génère l'entête de la boucle */
-			int header_length = strlen(if_label) + strlen($3) + strlen(else_label) + 14;
+			int header_length = strlen(if_label) + strlen($3.value) + strlen(else_label) + 14;
 			char* header = calloc(header_length, sizeof(char));
-			sprintf(header, "%s: if (%s) goto %s;\n", if_label, $3, else_label);
+			sprintf(header, "%s: if (%s) goto %s;\n", if_label, $3.value, else_label);
 
 			/* Génère le pied de la boucle goto) */
 			struct Block* footer = calloc(1, sizeof(struct Block));
@@ -197,13 +206,17 @@ iteration	:
 selection	:	
 		IF '(' condition ')' instruction %prec THEN
 		{	
-			init_block(&$$); char* header = calloc(strlen($3) + 6, sizeof(char)); concatenate(header, 3, "if (", $3, ")"); 
+			init_block(&$$);
+			arbre_eval($3.arbre, &$3);
+			char* header = calloc(strlen($3.value) + 6, sizeof(char)); concatenate(header, 3, "if (", $3.value, ")"); 
 			insert_block(&$$, header);
 			concatenate_block(&$$, &$5);
 		}
 	|	IF '(' condition ')' instruction ELSE instruction
 		{
-			init_block(&$$); char* header = calloc(strlen($3) + 6, sizeof(char)); concatenate(header, 3, "if (", $3, ")"); 
+			init_block(&$$);
+			arbre_eval($3.arbre, &$3);
+			char* header = calloc(strlen($3.value) + 6, sizeof(char)); concatenate(header, 3, "if (", $3.value, ")"); 
 			insert_block(&$$, header);
 			concatenate_block(&$$, &$5);
 			insert_block(&$$, "else");
@@ -211,7 +224,9 @@ selection	:
 		}
 	|	SWITCH '(' expression ')' instruction
 		{
-			init_block(&$$); char* header = calloc(strlen($3.value) + 10, sizeof(char)); concatenate(header, 3, "switch (", $3.value, ")"); 
+			init_block(&$$);
+			arbre_eval($3.arbre, &$3);
+			char* header = calloc(strlen($3.value) + 10, sizeof(char)); concatenate(header, 3, "switch (", $3.value, ")"); 
 			insert_block(&$$, $3.code);
 			insert_block(&$$, header);
 			dinsert_block(&$$, $3.declarations);
@@ -311,6 +326,7 @@ expression	:
 			insert_block(&$$, $2.code);
 			$$.value = $2.value;
 			$$.arbre = $2.arbre;
+			$$.arbre->parenthesis = 1;
 		}
 	|	expression binary_op expression %prec OP	{ 
 			init_block(&$$);
@@ -355,10 +371,32 @@ liste_expressions	:
 	|	{ init_block(&$$); }
 ;
 condition	:	
-		NOT '(' condition ')'	{ char* res = calloc(strlen($3) + 4, 1); strcat(res, "!("); strcat(res, $3); strcat(res, ")"); $$ = res;}
-	|	condition binary_rel condition %prec REL { char* res = calloc(strlen($1) + strlen($2) + strlen($3) + 1, 1); strcat(res, $1); strcat(res, $2); strcat(res, $3); $$ = res; }
-	|	'(' condition ')'	{ char* res = calloc(strlen($2) + 3, 1); strcat(res, "("); strcat(res, $2); strcat(res, ")"); $$ = res;}
-	|	expression binary_comp expression { arbre_eval($1.arbre, &$1); arbre_eval($3.arbre, &$3); char* res = calloc(strlen($1.value) + strlen($2) + strlen($3.value) + 1, 1); concatenate(res, 3, $1.value, $2, $3.value); $$ = res;}
+		NOT '(' condition ')'	{
+			init_block(&$$);
+			dinsert_block(&$$, $3.declarations);
+			insert_block(&$$, $3.code);
+			$$.value = $3.value;
+			$$.arbre = $3.arbre;
+			$$.arbre->isnot = 1;
+			$$.arbre->parenthesis = 1;
+		}
+	|	condition binary_rel condition %prec REL { 
+			init_block(&$$);
+			init_arbre(&$$, "", $2, $1.arbre, $3.arbre);
+			$$.arbre->isReturn = 1;
+		}
+	|	'(' condition ')'	{ 
+			init_block(&$$);
+			dinsert_block(&$$, $2.declarations);
+			insert_block(&$$, $2.code);
+			$$.value = $2.value;
+			$$.arbre = $2.arbre;
+			$$.arbre->parenthesis = 1;
+		}
+	|	expression binary_comp expression { 
+			init_block(&$$);
+			init_arbre(&$$, "", $2, $1.arbre, $3.arbre);
+		}
 ;
 binary_op	:	
 		PLUS	{ $$ = "+"; }

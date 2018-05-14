@@ -1,8 +1,24 @@
+
+
+void setAntiracine(struct Arbre* arbre, char* racine){
+	char symbols[6][3] = {"<", ">", "<=", ">=", "==", "!="};
+	char antisym[6][3] = {">=", "<=", ">", "<", "!=", "=="};
+	for(int i = 0; i < 6; i++){
+		if(strcmp(racine, symbols[i]) == 0){
+			char* antiracine = calloc(3, sizeof(char));
+			strcpy(antiracine, antisym[i]);
+			arbre->antiracine = antiracine;
+			return;
+		}
+	}
+}
+
 //Initialise l'arbre
 void init_arbre(struct Block* block, char* variable, char* racine, struct Arbre* gauche, struct Arbre* droit){
 	struct Arbre* arbre = calloc(1, sizeof(struct Arbre));
 	arbre->variable = variable;
 	arbre->racine = racine;
+	setAntiracine(arbre, racine);
 	arbre->gauche = gauche;
 	arbre->droit = droit;
 	arbre->isReturn = 0;
@@ -10,6 +26,17 @@ void init_arbre(struct Block* block, char* variable, char* racine, struct Arbre*
 	char* value = "";
 	block->arbre = arbre;
 	arbre->minus = 0;
+	arbre->parenthesis = 0;
+	arbre->isnot = 0;
+	arbre->antiarbre = 0;
+}
+
+//Renvoie la racine d'un arbre
+char* arbre_getRacine(struct Arbre* arbre){
+	if(arbre->antiarbre != 0){
+		return arbre->antiracine;
+	}
+	return arbre->racine;
 }
 
 void printArbre(struct Arbre* arbre, int indent){
@@ -17,7 +44,7 @@ void printArbre(struct Arbre* arbre, int indent){
 	for(int i = 0; i < indent; i++){
 		strcat(indentation, "\t");	
 	}
-	printf("%sPERE : %s\n", indentation, arbre->racine);
+	printf("%sPERE : %s\n", indentation, arbre_getRacine(arbre));
 	indent++;
 	if(arbre->gauche != NULL){
 		printf("%sFILS GAUCHE :\n", indentation);
@@ -31,20 +58,32 @@ void printArbre(struct Arbre* arbre, int indent){
 
 //Renvoie la valeur d'un arbre.
 char* arbre_getValue(struct Arbre* arbre){
-	if(arbre->feuille != 0){
-		if(arbre->minus != 0){
-			char* neg = calloc(strlen(arbre->value) + 2, sizeof(char));
-			concatenate(neg, 2, "-", arbre->value);
-			return neg;
-		}
-		return arbre->value;
-	}
+	char* neg = calloc(2, sizeof(char));
+	char* isnot = calloc(2, sizeof(char));	
 	if(arbre->minus != 0){
-		char* neg = calloc(strlen(arbre->variable) + 2, sizeof(char));
-		concatenate(neg, 2, "-", arbre->variable);
-		return neg;
+		concatenate(neg, 1, "-");
 	}
-	return arbre->variable;
+	if(arbre->isnot != 0){
+		concatenate(isnot, 1, "!");
+	}
+	if(arbre->feuille != 0){
+		if(arbre->parenthesis != 0){
+			char* parenthesis = calloc(strlen(arbre->value) + strlen(neg) + strlen(isnot) + 3, sizeof(char));
+			concatenate(parenthesis, 5, isnot, "(", neg, arbre->value, ")");
+			return parenthesis;
+		}
+		char* res = calloc(strlen(arbre->value) + strlen(neg) + strlen(isnot) + 1, sizeof(char));
+		concatenate(res, 3, isnot, neg, arbre->value);
+		return res;
+	}
+	if(arbre->parenthesis != 0){
+		char* parenthesis = calloc(strlen(arbre->variable) + strlen(neg) + strlen(isnot) + 3, sizeof(char));
+		concatenate(parenthesis, 5, isnot, "(", neg, arbre->variable, ")");
+		return parenthesis;
+	}
+	char* res = calloc(strlen(arbre->variable) + strlen(neg) + strlen(isnot) + 1, sizeof(char));
+	concatenate(res, 3, isnot, neg, arbre->variable);
+	return res;
 }
 
 //Evalue l'arbre. Rajoute de façon dynamique le code évalué dans le bloc.
@@ -64,17 +103,17 @@ void arbre_eval(struct Arbre* arbre, struct Block *block){
 				arbre->variable = new_tmp(block);	//fonction de block.h pour ajouter une variable temporaire;
 			}
 			//taille de la variable + "=" + l'evaluation de gauche + droite + racine + ";" + \0
-			char* value = calloc(strlen(arbre->variable) + strlen(gauche) + strlen(droit) + strlen(arbre->racine) + 3, sizeof(char));
-			concatenate(value, 6, arbre->variable, "=", gauche, arbre->racine, droit, ";\n");
+			char* value = calloc(strlen(arbre->variable) + strlen(gauche) + strlen(droit) + strlen(arbre_getRacine(arbre)) + 3, sizeof(char));
+			concatenate(value, 6, arbre->variable, "=", gauche, arbre_getRacine(arbre), droit, ";\n");
 			arbre->value = arbre->variable;
 			insert_block(block, value);
 		} else {
-			char* value = calloc(strlen(gauche) + strlen(droit) + strlen(arbre->racine) + 1, sizeof(char));
-			concatenate(value, 3, gauche, arbre->racine, droit);
+			char* value = calloc(strlen(gauche) + strlen(droit) + strlen(arbre_getRacine(arbre)) + 1, sizeof(char));
+			concatenate(value, 3, gauche, arbre_getRacine(arbre), droit);
 			arbre->variable = value;
 		}
 	} else {
-		arbre->value = arbre->racine;
+		arbre->value = arbre_getRacine(arbre);
 	}
 	block->value = arbre_getValue(arbre);
 	block->arbre = arbre;
