@@ -22,7 +22,8 @@ struct Arbre{
 	int feuille;	//booléen. 0 si ce n'est pas une feuille, 1 si c'est une feuille
 	char* value;	//evaluation de l'arbre.
 	char* variable;	//nom de la variable dans laquelle est stockée le resultat de l'expression. Si la racine est une opération, alors value prend la valeur d'une variable temporaire.
-	int isReturn;	//si l'expression est juste avant un return;
+	int isReturn;	//si l'expression doit retourner une nouvelle variable quoiqu'il arrive
+	int minus;	//si l'expression est négative
 };
 
 %}
@@ -31,6 +32,8 @@ struct Arbre{
 	char* value;
 	char* ident;
 	struct Block{
+		char* variables[100];	//variables du bloc
+		int var_num;		//nombre de variables
 		int decl_length;	//Taille des déclarations
 		int decl_size;		//Taille maximum des déclarations
 		char* declarations;	//Déclarations générées
@@ -45,7 +48,7 @@ struct Arbre{
 		
 		struct Block* precedent;//bloc précédent
 		struct Block* suivant;	//bloc suivant
-		struct Arbre* arbre;
+		struct Arbre* arbre;	//arbre de représentation pour les expressions
 	} block;
 	char* string;
 }
@@ -149,9 +152,9 @@ iteration	:
 			//on insère les déclarations si besoin
 			dinsert_block(&$$, $3.declarations); dinsert_block(&$$, $7.declarations);
 			/* Génère l'entête de la boucle */
-			int header_length = strlen(if_label) + strlen($5) + strlen(else_label) + 14;
+			int header_length = strlen(if_label) + strlen($5) + strlen(else_label) + 17;
 			char* header = calloc(header_length, sizeof(char));
-			sprintf(header, "%s: if %s goto %s;\n", if_label, $5, else_label);
+			sprintf(header, "%s: if !(%s) goto %s;\n", if_label, $5, else_label);
 
 			/* Génère le pied de la boucle goto) */
 			struct Block* footer = calloc(1, sizeof(struct Block));
@@ -176,7 +179,7 @@ iteration	:
 			/* Génère l'entête de la boucle */
 			int header_length = strlen(if_label) + strlen($3) + strlen(else_label) + 14;
 			char* header = calloc(header_length, sizeof(char));
-			sprintf(header, "%s: if %s goto %s;\n", if_label, $3, else_label);
+			sprintf(header, "%s: if (%s) goto %s;\n", if_label, $3, else_label);
 
 			/* Génère le pied de la boucle goto) */
 			struct Block* footer = calloc(1, sizeof(struct Block));
@@ -274,9 +277,11 @@ bloc	:
 appel	:	
 		IDENTIFICATEUR '(' liste_expressions ')' ';'	{
 			init_block(&$$);
+			$3.arbre->isReturn = 1;
+			arbre_eval($3.arbre, &$3);
 			insert_block(&$$, $3.code); dinsert_block(&$$, $3.declarations);
-			char* p = calloc(strlen($1) + strlen($3.value) + 4, sizeof(char));
-			concatenate(p, 4, $1, "(", $3.value, ");");
+			char* p = calloc(strlen($1) + strlen($3.value) + 5, sizeof(char));
+			concatenate(p, 4, $1, "(", $3.value, ");\n");
 			insert_block(&$$, p);
 			$$.value = p;
 		}
@@ -314,12 +319,8 @@ expression	:
 			//printArbre($$.arbre, 0);
 		}
 	|	MOINS expression	{
-			init_block(&$$);
-			dinsert_block(&$$, $2.declarations);
-			insert_block(&$$, $2.code);
-			char* p = calloc(strlen($2.value) + 2, sizeof(char));
-			concatenate(p, 2, "-", $2.value);
-			insert_block(&$$, p);
+			$$ = $2;
+			$$.arbre->minus = 1;
 		}
 	|	CONSTANTE	{
 			init_block(&$$);

@@ -9,6 +9,7 @@ void init_arbre(struct Block* block, char* variable, char* racine, struct Arbre*
 	arbre->feuille = (gauche == NULL) && (droit == NULL);
 	char* value = "";
 	block->arbre = arbre;
+	arbre->minus = 0;
 }
 
 void printArbre(struct Arbre* arbre, int indent){
@@ -31,7 +32,17 @@ void printArbre(struct Arbre* arbre, int indent){
 //Renvoie la valeur d'un arbre.
 char* arbre_getValue(struct Arbre* arbre){
 	if(arbre->feuille != 0){
+		if(arbre->minus != 0){
+			char* neg = calloc(strlen(arbre->value) + 2, sizeof(char));
+			concatenate(neg, 2, "-", arbre->value);
+			return neg;
+		}
 		return arbre->value;
+	}
+	if(arbre->minus != 0){
+		char* neg = calloc(strlen(arbre->variable) + 2, sizeof(char));
+		concatenate(neg, 2, "-", arbre->variable);
+		return neg;
 	}
 	return arbre->variable;
 }

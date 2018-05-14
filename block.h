@@ -4,6 +4,17 @@
 
 int label_number = 0; //Nombre d'étiquettes créées par le compilateur
 
+/* Recherche needle dans tab dans les element premiers char*. Renvoie 1 si trouvé, 0 sinon. */
+int find(char** tab, char* needle, int element){
+	for(int i = 0; i < element; i++){
+		char* c = tab[i];
+		if(strcmp(c, needle) == 0){
+			return 1;
+		}	
+	}
+	return 0;
+}
+
 /* Initialise un bloc à partir de rien */
 void init_block(struct Block *block){
 	//Taille des déclarations initialisé à 1024
@@ -20,6 +31,10 @@ void init_block(struct Block *block){
 	//On alloue la mémoire pour le code
 	block->code = calloc(block->size, sizeof(char));
 
+	//Aucune variable temporaire créée
+	block->temp_var = 0;
+	//Nombre de variables
+	block->var_num = 0;
 	//On alloue la mémoire pour la valeur (utile pour les expressions);
 	block->value = calloc(103, sizeof(char));
 	//Le bloc n'est pas entouré d'accolades par défaut
@@ -80,8 +95,8 @@ void insert_block(struct Block *block, char* string){
 	block->length = length;
 }
 
-/* Ajoute des déclarations au bloc */
-void dinsert_block(struct Block *block, char* declarations){
+/* Ajoute une déclaration au bloc */
+void insert_declaration(struct Block *block, char* declarations){
 	int length = strlen(declarations) + block->decl_length + 2;
 	while(length > block->decl_size){
 		block->decl_size = block->decl_size * 2;
@@ -93,6 +108,24 @@ void dinsert_block(struct Block *block, char* declarations){
 	//Ajoute string à la fin du code
 	strcat(block->declarations, declarations);
 	block->decl_length = length;
+}
+
+/* Ajoute des déclarations au bloc - Garantie l'unicité */
+void dinsert_block(struct Block *block, char* declarations){
+	char *token;
+	int found;
+	while ((token = strsep(&declarations, ";\n"))){
+		if(*token != '\0'){
+			found = find(block->variables, token, block->var_num);
+			if(found == 0){
+				char* p = calloc(strlen(token) + 3, sizeof(char));
+				concatenate(p, 2, token, ";\n");
+				block->variables[block->var_num] = token;
+				block->var_num = block->var_num + 1;
+				insert_declaration(block, p);
+			}
+		}
+	}
 }
 
 /* Ajoute un morceau de code au début du bloc */
