@@ -20,3 +20,25 @@ Executer dans le terminal les commandes suivantes :
 **Note** :  
 dossier_du_programme : dossier dans lequel se trouve les fichiers ANSI-C.l et cfe.y  
 monpseudocode : code que vous souhaitez traduire.
+
+**Priorité d'opérateurs** : https://fr.wikibooks.org/wiki/Programmation_C/Op%C3%A9rateurs
+
+### Execution des tests
+OK...add  
+OK...compteur  
+OK...cond  
+OK...div  
+OK...expr  
+OK...functions  
+OK...loops  
+OK...lsh  
+OK...mul  
+OK...neg  
+OK...rsh  
+OK...sub  
+OK...tableaux  
+OK...variables  
+  
+NO...tableaux-multi  
+NO...break  
+NO...switch  
