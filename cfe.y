@@ -28,6 +28,8 @@ struct Arbre{
 	int isnot;
 	char* antiracine;
 	int antiarbre;
+	char* array_name;
+	char* function_name;
 };
 
 %}
@@ -55,6 +57,7 @@ struct Arbre{
 		struct Arbre* arbre;	//arbre de représentation pour les expressions
 
 		char* last_label;
+		int isFunction;
 	} block;
 	char* string;
 }
@@ -172,8 +175,10 @@ iteration	:
 			link_block(&$9, footer);
 
 			/* On assemble le code */
+			insert_block(&$$, $3.code);
+			insert_block(&$$, ";\n");
 			insert_block(&$$, header);
-			insert_block(&$7, ";");
+			insert_block(&$7, ";\n");
 			insert_block(&$9, $7.code);
 			dinsert_block(&$9, $7.declarations);
 			char* code = block_code(&$9);
@@ -181,6 +186,8 @@ iteration	:
 		}
 	|	WHILE '(' condition ')' instruction	{
 			init_block(&$$);
+			$3.arbre->parenthesis = 1;
+			$3.arbre->antiarbre = 1;
 			arbre_eval($3.arbre, &$3);
 			//on génère les labels
 			char* if_label = new_label(); char* else_label = new_label();
@@ -188,7 +195,7 @@ iteration	:
 			/* Génère l'entête de la boucle */
 			int header_length = strlen(if_label) + strlen($3.value) + strlen(else_label) + 14;
 			char* header = calloc(header_length, sizeof(char));
-			sprintf(header, "%s: if (%s) goto %s;\n", if_label, $3.value, else_label);
+			sprintf(header, "%s: if %s goto %s;\n", if_label, $3.value, else_label);
 
 			/* Génère le pied de la boucle goto) */
 			struct Block* footer = calloc(1, sizeof(struct Block));
@@ -217,7 +224,7 @@ selection	:
 			insert_block(&$$, $3.code);
 			
 			/* Génère l'entête de la selection */
-			int header_length = strlen($3.value) + strlen(else_label) + 15;
+			int header_length = strlen($3.value) + strlen(else_label) + 20;
 			char* header = calloc(header_length, sizeof(char));
 			sprintf(header, "if %s goto %s;\n", $3.value, else_label);
 
@@ -245,7 +252,7 @@ selection	:
 			insert_block(&$$, $3.code);
 			
 			/* Génère l'entête de la selection */
-			int header_length = strlen($3.value) + strlen(if_label) + 15;
+			int header_length = strlen($3.value) + strlen(if_label) + 20;
 			char* header = calloc(header_length, sizeof(char));
 			sprintf(header, "if %s goto %s;\n", $3.value, if_label);
 
@@ -299,7 +306,7 @@ saut	:
 				$2.value = $$.value;
 			}
 			char* p = calloc(strlen($2.value) + 9, sizeof(char));
-			concatenate(p, 3, "return ", $2.value, ";");
+			concatenate(p, 3, "return ", $2.value, ";\n");
 			insert_block(&$$, $2.code);
 			insert_block(&$$, p);
 			dinsert_block(&$$, $2.declarations);
@@ -311,6 +318,10 @@ affectation	:
 			if($3.arbre != NULL){
 				arbre_eval($3.arbre, &$$);
 				$3.value = $$.value;
+			}
+			if($1.arbre != NULL){
+				arbre_eval($1.arbre, &$$);
+				$1.value = $$.value;
 			}
 			char* p = calloc(strlen($1.value) + strlen($3.value) + 2, sizeof(char));
 			concatenate(p, 3, $1.value, "=", $3.value);
@@ -334,9 +345,9 @@ bloc	:
 appel	:	
 		IDENTIFICATEUR '(' liste_expressions ')' ';'	{
 			init_block(&$$);
-			$3.arbre->isReturn = 1;
-			arbre_eval($3.arbre, &$3);
-			insert_block(&$$, $3.code); dinsert_block(&$$, $3.declarations);
+			arbre_eval($3.arbre, &$$);
+			$3.value = $$.value;
+			//insert_block(&$$, $3.code); dinsert_block(&$$, $3.declarations);
 			char* p = calloc(strlen($1) + strlen($3.value) + 5, sizeof(char));
 			concatenate(p, 4, $1, "(", $3.value, ");\n");
 			insert_block(&$$, p);
@@ -346,19 +357,17 @@ appel	:
 variable	:	
 		IDENTIFICATEUR	{
 			init_block(&$$);
+			init_arbre(&$$, "", $1, NULL, NULL);
 			$$.value = $1;
 		}
 	|	variable '[' expression ']'	{
 			init_block(&$$);
-			$3.arbre->isReturn = 1;	$3.arbre->variable = "";		
-			arbre_eval($3.arbre, &$$);
-			char* var2 = new_pnt(&$$);
-			char* offset = calloc(strlen(var2) + strlen($$.value) + strlen($1.value) + 5, sizeof(char));
-			concatenate(offset, 6, var2, "=", $1.value, "+", $$.value, ";\n");
-			insert_block(&$$, offset);
-			char* affectation = calloc(strlen(var2) + 2, sizeof(char));
-			concatenate(affectation, 2, "*", var2);
-			$$.value = affectation;
+			if($1.arbre != NULL){
+				arbre_eval($1.arbre, &$$);
+			}
+			$$.arbre = $3.arbre;
+			$$.arbre->isReturn = 1;
+			$$.arbre->array_name = $$.value;
 		}
 ;
 expression	:	
@@ -386,35 +395,19 @@ expression	:
 			//arbre_eval($$.arbre, &$$);
 		}
 	|	variable	{
-			init_block(&$$);
-			//on construit l'arbre (plutôt la feuille) dont la racine est la valeur de la variable (son nom)
-			init_arbre(&$$, "", $1.value, NULL, NULL);
-			//arbre_eval($$.arbre, &$$);
-			insert_block(&$$, $1.code);
-			//insert_block(&$$, $1.value);
-			dinsert_block(&$$, $1.declarations);
-			$$.value = $1.value;
+			$$ = $1;
 		}
 	|	IDENTIFICATEUR '(' liste_expressions ')'	{
-			init_block(&$$);
-			//On ajoute les déclarations ainsi que le code de la liste des expressions (au cas où l'évaluation de l'arbre des expressions a engendré des var temp)
-			insert_block(&$$, $3.code); dinsert_block(&$$, $3.declarations);
-			//On créer la valeur du bloc, qui est égal à identificateur(liste_expressions)
-			char* p = calloc(strlen($1) + strlen($3.value) + 3, sizeof(char)); concatenate(p, 4, $1, "(", $3.value, ")");
-			$$.value = p;
+			$$ = $3;
+			$3.arbre->function_name = $1;
 		}
 ;
 liste_expressions	:	
 		liste_expressions ',' expression	{
 			init_block(&$$);
-			//insert_block(&$$, $1.code); insert_block(&$$, $3.code);
-			//On ajoute les déclarations des expressions au bloc
-			dinsert_block(&$$, $1.declarations); dinsert_block(&$$, $3.declarations);
-			//La valeur du bloc est la liste des expressions incrémenté de la dernière expression ajoutée
-			char* p = calloc(strlen($1.value) + strlen($3.value) + 2, sizeof(char)); concatenate(p, 3, $1.value, ",", $3.value);
-			$$.value = p;
+			init_arbre(&$$, "", ",", $1.arbre, $3.arbre);
 		}
-	|	expression				{ $$ = $1; }
+	|	expression				{ $$ = $1; if($$.arbre->function_name == NULL && $$.arbre->array_name == NULL) { $$.arbre->isReturn = 1; }}
 	|	{ init_block(&$$); }
 ;
 condition	:	

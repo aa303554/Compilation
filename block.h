@@ -39,6 +39,7 @@ void init_block(struct Block *block){
 	block->value = calloc(103, sizeof(char));
 	//Le bloc n'est pas entouré d'accolades par défaut
 	block->bracket = 0;
+	block->isFunction = 0;
 
 	//Pas de bloc avant ni après, pas d'arbre non plus
 	block->suivant = NULL;
@@ -48,15 +49,15 @@ void init_block(struct Block *block){
 
 /* Génère le bloc sous forme d'une chaîne de caractères */
 char* block_code(struct Block* block){
-	char* code = calloc(block->length + block->decl_length + 6, sizeof(char));
+	char* code = calloc(block->length + block->decl_length + 10, sizeof(char));
 	if(block->bracket != 0){
-		concatenate(code, 4, "{\n", block->declarations, block->code, "\n}\n");
+		concatenate(code, 4, "{\n", block->declarations, block->code, "}\n");
 	} else {
 		concatenate(code, 2, block->declarations, block->code);
 	}
 	if(block->suivant != NULL){
 		char* suivant = block_code(block->suivant);
-		char* all = calloc(strlen(code) + strlen(suivant) + 1, sizeof(char));
+		char* all = calloc(strlen(code) + strlen(suivant) + 5, sizeof(char));
 		concatenate(all, 2, code, suivant);
 		return all;	
 	}

@@ -29,6 +29,8 @@ void init_arbre(struct Block* block, char* variable, char* racine, struct Arbre*
 	arbre->parenthesis = 0;
 	arbre->isnot = 0;
 	arbre->antiarbre = 0;
+	arbre->array_name = NULL;
+	arbre->function_name = NULL;
 }
 
 //Renvoie la racine d'un arbre
@@ -57,33 +59,45 @@ void printArbre(struct Arbre* arbre, int indent){
 }
 
 //Renvoie la valeur d'un arbre.
-char* arbre_getValue(struct Arbre* arbre){
+char* arbre_getValue2(struct Arbre* arbre){
 	char* neg = calloc(2, sizeof(char));
-	char* isnot = calloc(2, sizeof(char));	
+	char* isnot = calloc(2, sizeof(char));
+	char* val;
+	if(arbre->feuille != 0){
+		val = arbre->value;
+	} else {
+		val = arbre->variable;
+	}
 	if(arbre->minus != 0){
 		concatenate(neg, 1, "-");
 	}
 	if(arbre->isnot != 0){
 		concatenate(isnot, 1, "!");
 	}
-	if(arbre->feuille != 0){
-		if(arbre->parenthesis != 0){
-			char* parenthesis = calloc(strlen(arbre->value) + strlen(neg) + strlen(isnot) + 3, sizeof(char));
-			concatenate(parenthesis, 5, isnot, "(", neg, arbre->value, ")");
-			return parenthesis;
-		}
-		char* res = calloc(strlen(arbre->value) + strlen(neg) + strlen(isnot) + 1, sizeof(char));
-		concatenate(res, 3, isnot, neg, arbre->value);
-		return res;
-	}
 	if(arbre->parenthesis != 0){
-		char* parenthesis = calloc(strlen(arbre->variable) + strlen(neg) + strlen(isnot) + 3, sizeof(char));
-		concatenate(parenthesis, 5, isnot, "(", neg, arbre->variable, ")");
+		char* parenthesis = calloc(strlen(val) + strlen(neg) + strlen(isnot) + 3, sizeof(char));
+		concatenate(parenthesis, 5, isnot, "(", neg, val, ")");
 		return parenthesis;
 	}
-	char* res = calloc(strlen(arbre->variable) + strlen(neg) + strlen(isnot) + 1, sizeof(char));
-	concatenate(res, 3, isnot, neg, arbre->variable);
+	char* res = calloc(strlen(val) + strlen(neg) + strlen(isnot) + 1, sizeof(char));
+	concatenate(res, 3, isnot, neg, val);
 	return res;
+}
+
+char* arbre_getValue(struct Arbre* arbre){
+	if(arbre->function_name != NULL){
+		char* value = arbre_getValue2(arbre);
+		char* res = calloc(strlen(arbre->function_name) + strlen(value) + 3, sizeof(char));
+		concatenate(res, 4, arbre->function_name, "(", value, ")");
+		return res;
+	} else if(arbre->array_name != NULL){
+		char* value = arbre_getValue2(arbre);
+		char* res = calloc(strlen(arbre->array_name) + strlen(value) + 3, sizeof(char));
+		concatenate(res, 4, arbre->function_name, "[", value, "]");
+		return res;
+	} else {
+		return arbre_getValue2(arbre);
+	}
 }
 
 //Evalue l'arbre. Rajoute de façon dynamique le code évalué dans le bloc.
@@ -97,7 +111,7 @@ void arbre_eval(struct Arbre* arbre, struct Block *block){
 		arbre->droit->isReturn = 1;
 		arbre_eval(arbre->droit, block);
 		droit = arbre_getValue(arbre->droit);
-		if(arbre->isReturn != 0 || !(arbre->gauche->feuille != 0 && arbre->droit->feuille != 0)){
+		if((arbre->isReturn != 0 || !(arbre->gauche->feuille != 0 && arbre->droit->feuille != 0)) && arbre->racine != ","){
 			//si l'arbre n'est pas celui de départ, alors on doit lui rajouter une variable temporaire
 			if(arbre->variable == ""){
 				arbre->variable = new_tmp(block);	//fonction de block.h pour ajouter une variable temporaire;
@@ -114,6 +128,32 @@ void arbre_eval(struct Arbre* arbre, struct Block *block){
 		}
 	} else {
 		arbre->value = arbre_getRacine(arbre);
+	}
+	if(arbre->function_name != NULL){
+		char* val = arbre_getValue(arbre);
+		arbre->variable = new_tmp(block);
+		char* new_value = calloc(strlen(val) + strlen(arbre->variable) + 4, sizeof(char));
+		concatenate(new_value, 4, arbre->variable, "=", val, ";\n");
+		arbre->value = arbre->variable;
+		insert_block(block, new_value);
+		arbre->function_name = NULL;
+	}
+	if(arbre->array_name != NULL){
+		/* t[i] -> [t : array_name] ; [i : val] */
+		char* array_name = arbre->array_name;
+		arbre->array_name = NULL;
+
+		char* val = arbre_getValue(arbre);
+		char* pointer = new_pnt(block);
+		char* new_value = calloc(strlen(pointer) + 2, sizeof(char));
+
+		char* offset = calloc(strlen(val) + strlen(pointer) + strlen(array_name) + 5, sizeof(char));
+		// _tX = t + i;
+		concatenate(offset, 6, pointer, "=", array_name, "+", val, ";\n");
+		concatenate(new_value, 2, "*", pointer);
+		arbre->value = new_value;
+		arbre->variable = new_value;
+		insert_block(block, offset);
 	}
 	block->value = arbre_getValue(arbre);
 	block->arbre = arbre;
