@@ -73,17 +73,16 @@ struct Arbre{
 %token <string> BREAK RETURN PLUS MOINS MUL DIV LSHIFT RSHIFT BAND BOR LAND LOR LT GT 
 %token <string> GEQ LEQ EQ NEQ NOT EXTERN
 
-%type <string> binary_op binary_comp binary_rel
+%type <string> binary_comp binary_rel
 %type <string> programme fonction liste_fonctions
 %type <string> declarateur liste_declarations type declaration liste_declarateurs
 %type <string> liste_parms parm
 %type <block> liste_instructions instruction iteration selection saut affectation bloc appel liste_expressions expression variable condition
 
-%left PLUS MOINS
-%left OP
-%left MUL DIV
-%left LSHIFT RSHIFT
 %left BOR BAND
+%left LSHIFT RSHIFT
+%left PLUS MOINS
+%left DIV MUL
 %left LAND LOR
 %nonassoc THEN
 %nonassoc ELSE
@@ -376,10 +375,59 @@ expression	:
 			//on lève le flag indicant que la valeur doit être entre parenthèses
 			$$.arbre->parenthesis = 1;
 		}
-	|	expression binary_op expression %prec OP	{ 
+	|	expression BAND expression %prec BAND	{ 
 			init_block(&$$);
 			//on construit simplement l'arbre à partir du fils gauche et du fils droit
-			init_arbre(&$$, "", $2, $1.arbre, $3.arbre);
+			init_arbre(&$$, "", "&", $1.arbre, $3.arbre);
+			//arbre_eval($$.arbre, &$$);
+			//printArbre($$.arbre, 0);
+		}
+	|	expression BOR expression %prec BOR	{ 
+			init_block(&$$);
+			//on construit simplement l'arbre à partir du fils gauche et du fils droit
+			init_arbre(&$$, "", "|", $1.arbre, $3.arbre);
+			//arbre_eval($$.arbre, &$$);
+			//printArbre($$.arbre, 0);
+		}
+	|	expression LSHIFT expression %prec LSHIFT	{ 
+			init_block(&$$);
+			//on construit simplement l'arbre à partir du fils gauche et du fils droit
+			init_arbre(&$$, "", "<<", $1.arbre, $3.arbre);
+			//arbre_eval($$.arbre, &$$);
+			//printArbre($$.arbre, 0);
+		}
+	|	expression RSHIFT expression %prec RSHIFT	{ 
+			init_block(&$$);
+			//on construit simplement l'arbre à partir du fils gauche et du fils droit
+			init_arbre(&$$, "", ">>", $1.arbre, $3.arbre);
+			//arbre_eval($$.arbre, &$$);
+			//printArbre($$.arbre, 0);
+		}
+	|	expression PLUS expression %prec PLUS	{ 
+			init_block(&$$);
+			//on construit simplement l'arbre à partir du fils gauche et du fils droit
+			init_arbre(&$$, "", "+", $1.arbre, $3.arbre);
+			//arbre_eval($$.arbre, &$$);
+			//printArbre($$.arbre, 0);
+		}
+	|	expression MOINS expression %prec MOINS	{ 
+			init_block(&$$);
+			//on construit simplement l'arbre à partir du fils gauche et du fils droit
+			init_arbre(&$$, "", "-", $1.arbre, $3.arbre);
+			//arbre_eval($$.arbre, &$$);
+			//printArbre($$.arbre, 0);
+		}
+	|	expression DIV expression %prec DIV	{ 
+			init_block(&$$);
+			//on construit simplement l'arbre à partir du fils gauche et du fils droit
+			init_arbre(&$$, "", "/", $1.arbre, $3.arbre);
+			//arbre_eval($$.arbre, &$$);
+			//printArbre($$.arbre, 0);
+		}
+	|	expression MUL expression %prec MUL	{ 
+			init_block(&$$);
+			//on construit simplement l'arbre à partir du fils gauche et du fils droit
+			init_arbre(&$$, "", "*", $1.arbre, $3.arbre);
 			//arbre_eval($$.arbre, &$$);
 			//printArbre($$.arbre, 0);
 		}
@@ -432,16 +480,6 @@ condition	:
 			//on construit simplement l'arbre
 			init_arbre(&$$, "", $2, $1.arbre, $3.arbre);
 		}
-;
-binary_op	:	
-		PLUS	{ $$ = "+"; }
-	|       MOINS	{ $$ = "-"; }
-	|	MUL	{ $$ = "*"; }
-	|	DIV	{ $$ = "/"; }
-	|       LSHIFT	{ $$ = "<<"; }
-	|       RSHIFT	{ $$ = ">>"; }
-	|	BAND	{ $$ = "&"; }
-	|	BOR	{ $$ = "|"; }
 ;
 binary_rel	:	
 		LAND	{ $$ = "&&"; }
