@@ -15,11 +15,12 @@ Executer dans le terminal les commandes suivantes :
 > lex ANSI-C.l  
 > yacc -d cfe.y  
 > gcc -o programme y.tab.c lex.yy.c  
-> ./programme < front_end.c > back_end.c
+> ./programme < front_end.c > back_end.c  
 
 **Note** :  
 dossier_du_programme : dossier dans lequel se trouve les fichiers ANSI-C.l et cfe.y  
-monpseudocode : code que vous souhaitez traduire.
+front_end.c : code que vous souhaitez traduire.  
+back_end.c : fichier de sortie  
 
 **Priorité d'opérateurs** : https://fr.wikibooks.org/wiki/Programmation_C/Op%C3%A9rateurs
 
