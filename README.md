@@ -15,7 +15,7 @@ Executer dans le terminal les commandes suivantes :
 > lex ANSI-C.l  
 > yacc -d cfe.y  
 > gcc -o programme y.tab.c lex.yy.c  
-> ./programme < monpseudocode  
+> ./programme < front_end.c > back_end.c
 
 **Note** :  
 dossier_du_programme : dossier dans lequel se trouve les fichiers ANSI-C.l et cfe.y  
