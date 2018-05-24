@@ -1,17 +1,22 @@
 %{
 #include <stdlib.h>
 #include "y.tab.h"
+#include "table.h"
+table_s* table_symboles;
 
-void save_ident(char* ident){
+char* save_ident(char* ident){
 	char* p = calloc(strlen(ident)+1, sizeof(char));
 	strcpy(p, ident);
 	yylval.ident = p;
+	return p;
 }
 void save_value(char* value){
 	char* p = calloc(strlen(value)+1, sizeof(char));
 	strcpy(p, value);
 	yylval.value = p;
 }
+
+int last_type = -1;
 
 %}
 
@@ -77,6 +82,8 @@ EXTERN		"extern"
 
 /* Espaces, saut de lignes etc... */
 WHITESPACE	[ \t\v\n\f]
+OPENBRACKET	\{
+CLOSEBRACKET	\}
 COMMENTAIRES	("/"+"\*"+(.[^\*/]|{WHITESPACE})*"\*"+"/"+|"//".*\n)
 
 /********* ANALYSE **********/
@@ -87,8 +94,9 @@ COMMENTAIRES	("/"+"\*"+(.[^\*/]|{WHITESPACE})*"\*"+"/"+|"//".*\n)
 
 %%
 
-{COMMENTAIRES}		
-{WHITESPACE}		
+{COMMENTAIRES}	
+" "
+{WHITESPACE}		last_type = -1;
 
 
 {FOR}			return FOR;
@@ -110,10 +118,10 @@ COMMENTAIRES	("/"+"\*"+(.[^\*/]|{WHITESPACE})*"\*"+"/"+|"//".*\n)
 {HEXA}			return CONSTANTE;
 {EXP}			return CONSTANTE;
 
-{INT}			return INT;
-{VOID}			return VOID;
+{INT}			last_type = 1; return INT;
+{VOID}			last_type = 0; return VOID;
 
-{IDENTIFICATEUR} 	save_ident(yytext); return IDENTIFICATEUR;
+{IDENTIFICATEUR} 	{char* p = save_ident(yytext); if(last_type >= 0){ put(last_type, p); } return IDENTIFICATEUR; }
 
 {PLUS}			return PLUS;
 {MOINS}			return MOINS;
@@ -133,6 +141,7 @@ COMMENTAIRES	("/"+"\*"+(.[^\*/]|{WHITESPACE})*"\*"+"/"+|"//".*\n)
 {GEQ}			return GEQ;
 {EQ}			return EQ;
 {NEQ}			return NEQ;
-
+{OPENBRACKET}		new_table(); return yytext[0];
+{CLOSEBRACKET}		destroy_table(); return yytext[0];
 .			return yytext[0]; /* Echec de reconnaissance -> erreur OU caractères spécial (";" "," "{" "}" etc ...) */
 %%

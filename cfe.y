@@ -3,7 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include "table.c"
 extern char* yytext;
+table_s* table_symboles;
 
 /* Fait la concaténation des n chaines en paramètres dans destination. On suppose qu'on a alloué assez d'espace mémoire */
 void concatenate(char* destination, int n, ...){
@@ -59,6 +61,20 @@ struct Arbre{
 		char* last_label;
 		int isFunction;
 	} block;
+
+	struct Declarations{
+		int type;		//type des déclarartions
+		int size;		//taille du tableau de variables
+		char* variables[100];	//tableau de variables
+		char* text;		//text de la declaration
+		struct Declaration* next;	//declarations suivantes
+	} declarations;
+
+	struct Declarateurs{
+		int size;		//taille des declarateurs
+		char* variables[100];	//nom des variables
+		char* text;		//text des declarateurs
+	} declarators;
 	char* string;
 }
 
@@ -75,9 +91,11 @@ struct Arbre{
 
 %type <string> binary_comp binary_rel
 %type <string> programme fonction liste_fonctions
-%type <string> declarateur liste_declarations type declaration liste_declarateurs
+%type <string> type
 %type <string> liste_parms parm
 %type <block> liste_instructions instruction iteration selection saut affectation bloc appel liste_expressions expression variable condition
+%type <declarations> liste_declarations declaration
+%type <declarators> liste_declarateurs declarateur
 
 %left BOR BAND
 %left LSHIFT RSHIFT
@@ -90,26 +108,42 @@ struct Arbre{
 %start programme
 %%
 programme	:	
-		liste_declarations liste_fonctions	{char* p = calloc(strlen($1) + strlen($2) + 1, sizeof(char)); concatenate(p, 2, $1, $2); $$ = p; printf("%s", $$); }
+		liste_declarations liste_fonctions	{char* p = calloc(strlen($1.text) + strlen($2) + 1, sizeof(char)); concatenate(p, 2, $1.text, $2); $$ = p; printf("%s", $$); }
 ;
 liste_declarations	:	
-		liste_declarations declaration {char* p = calloc(strlen($1) + strlen($2) + 2, sizeof(char)); strcat(p, $1); strcat(p, $2); $$ = p; }
-	|	{ $$ = ""; }
+		liste_declarations declaration {
+			char* p = calloc(strlen($1.text) + strlen($2.text) + 2, sizeof(char)); strcat(p, $1.text); strcat(p, $2.text);
+			$$.text = p;
+		}
+	|	{ $$.text = "";}
 ;
 liste_fonctions	:	
 		liste_fonctions fonction	{char* p = calloc(strlen($1) + strlen($2) + 1, sizeof(char)); strcat(p, $1); strcat(p, $2); $$ = p;}
 |               fonction	{ $$ = $1; }
 ;
 declaration	:	
-		type liste_declarateurs ';'	{char* p = calloc(strlen($1) + strlen($2) + 4, sizeof(char)); strcat(p, $1); strcat(p, " "); strcat(p, $2); strcat(p, ";\n"); $$ = p;}
+		type liste_declarateurs ';'	{
+			char* p = calloc(strlen($1) + strlen($2.text) + 4, sizeof(char)); strcat(p, $1); strcat(p, " "); strcat(p, $2.text); strcat(p, ";\n");
+			$$.text = p;
+		}
 ;
 liste_declarateurs	:	
-		liste_declarateurs ',' declarateur	{ char* p = calloc(strlen($1) + strlen($3) + 2, sizeof(char)); strcat(p, $1); strcat(p, ","); strcat(p, $3); $$ = p; }
+		liste_declarateurs ',' declarateur	{
+			char* p = calloc(strlen($1.text) + strlen($3.text) + 2, sizeof(char)); strcat(p, $1.text); strcat(p, ","); strcat(p, $3.text);
+			$$ = $1;
+			$$.text = p;
+			$$.variables[$$.size] = $3.variables[0];
+			$$.size++;
+		}
 	|	declarateur	{ $$ = $1; }
 ;
 declarateur	:	
-		IDENTIFICATEUR	{ $$ = $1; }
-	|	declarateur '[' CONSTANTE ']'	{ char* p = calloc(strlen($1) + strlen($3) + 3, sizeof(char)); strcat(p, $1); strcat(p, "["); strcat(p, $3); strcat(p, "]"); $$ = p;}
+		IDENTIFICATEUR	{ $$.text = $1; $$.size = 1; $$.variables[0] = $1; }
+	|	declarateur '[' CONSTANTE ']'	{
+			char* p = calloc(strlen($1.text) + strlen($3) + 3, sizeof(char)); strcat(p, $1.text); strcat(p, "["); strcat(p, $3); strcat(p, "]");
+			$$ = $1;
+			$$.text = p;
+		}
 ;
 fonction	:	
 		type IDENTIFICATEUR '(' liste_parms ')' bloc {
@@ -333,9 +367,10 @@ affectation	:
 ;
 bloc	:	
 		'{' liste_declarations liste_instructions '}'		{
+			
 			init_block(&$$); $$.bracket = 1;
 			//on insere les declarations
-			dinsert_block(&$$, $2);
+			dinsert_block(&$$, $2.text);
 			dinsert_block(&$$, $3.declarations);
 			//on insere le code
 			insert_block(&$$, $3.code);
@@ -346,7 +381,6 @@ appel	:
 			init_block(&$$);
 			arbre_eval($3.arbre, &$$);
 			$3.value = $$.value;
-			//insert_block(&$$, $3.code); dinsert_block(&$$, $3.declarations);
 			char* p = calloc(strlen($1) + strlen($3.value) + 5, sizeof(char));
 			concatenate(p, 4, $1, "(", $3.value, ");\n");
 			insert_block(&$$, p);
@@ -357,6 +391,10 @@ variable	:
 		IDENTIFICATEUR	{
 			init_block(&$$);
 			init_arbre(&$$, "", $1, NULL, NULL);
+			int pos = search($1);
+			if(pos < 0){
+				fprintf(stderr, "/* ERROR : %s UNDECLARED BEFORE USE */\n", $1);
+			}
 			$$.value = $1;
 		}
 	|	variable '[' expression ']'	{
@@ -379,57 +417,44 @@ expression	:
 			init_block(&$$);
 			//on construit simplement l'arbre à partir du fils gauche et du fils droit
 			init_arbre(&$$, "", "&", $1.arbre, $3.arbre);
-			//arbre_eval($$.arbre, &$$);
-			//printArbre($$.arbre, 0);
 		}
 	|	expression BOR expression %prec BOR	{ 
 			init_block(&$$);
 			//on construit simplement l'arbre à partir du fils gauche et du fils droit
 			init_arbre(&$$, "", "|", $1.arbre, $3.arbre);
-			//arbre_eval($$.arbre, &$$);
-			//printArbre($$.arbre, 0);
 		}
 	|	expression LSHIFT expression %prec LSHIFT	{ 
 			init_block(&$$);
 			//on construit simplement l'arbre à partir du fils gauche et du fils droit
 			init_arbre(&$$, "", "<<", $1.arbre, $3.arbre);
-			//arbre_eval($$.arbre, &$$);
-			//printArbre($$.arbre, 0);
 		}
 	|	expression RSHIFT expression %prec RSHIFT	{ 
 			init_block(&$$);
 			//on construit simplement l'arbre à partir du fils gauche et du fils droit
 			init_arbre(&$$, "", ">>", $1.arbre, $3.arbre);
-			//arbre_eval($$.arbre, &$$);
-			//printArbre($$.arbre, 0);
 		}
 	|	expression PLUS expression %prec PLUS	{ 
 			init_block(&$$);
 			//on construit simplement l'arbre à partir du fils gauche et du fils droit
 			init_arbre(&$$, "", "+", $1.arbre, $3.arbre);
-			//arbre_eval($$.arbre, &$$);
-			//printArbre($$.arbre, 0);
+			char* var1 = $1.arbre->racine;
+			char* var2 = $3.arbre->racine;
+			check_operation(var1, "+", var2);
 		}
 	|	expression MOINS expression %prec MOINS	{ 
 			init_block(&$$);
 			//on construit simplement l'arbre à partir du fils gauche et du fils droit
 			init_arbre(&$$, "", "-", $1.arbre, $3.arbre);
-			//arbre_eval($$.arbre, &$$);
-			//printArbre($$.arbre, 0);
 		}
 	|	expression DIV expression %prec DIV	{ 
 			init_block(&$$);
 			//on construit simplement l'arbre à partir du fils gauche et du fils droit
 			init_arbre(&$$, "", "/", $1.arbre, $3.arbre);
-			//arbre_eval($$.arbre, &$$);
-			//printArbre($$.arbre, 0);
 		}
 	|	expression MUL expression %prec MUL	{ 
 			init_block(&$$);
 			//on construit simplement l'arbre à partir du fils gauche et du fils droit
 			init_arbre(&$$, "", "*", $1.arbre, $3.arbre);
-			//arbre_eval($$.arbre, &$$);
-			//printArbre($$.arbre, 0);
 		}
 	|	MOINS expression	{
 			$$ = $2;
@@ -440,7 +465,6 @@ expression	:
 			init_block(&$$);
 			//on construit l'arbre dont la racine est la valeur de la constante
 			init_arbre(&$$, "", $1, NULL, NULL);
-			//arbre_eval($$.arbre, &$$);
 		}
 	|	variable	{
 			$$ = $1;
@@ -497,8 +521,8 @@ binary_comp	:
 void yyerror(const char *s) { 
 	fprintf(stderr, "Error : %s\n", s); 
 }
-int main(){ 
-	while(yyparse()){
-	}
+int main(){
+	table_symbole = calloc(1, sizeof(table_s));
+	yyparse();
 	return 1;
 }
