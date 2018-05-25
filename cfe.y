@@ -33,6 +33,7 @@ struct Arbre{
 	int antiarbre;
 	char* array_name;
 	char* function_name;
+	int infunction;
 };
 
 %}
@@ -407,6 +408,7 @@ bloc	:
 appel	:	
 		IDENTIFICATEUR '(' liste_expressions ')' ';'	{
 			init_block(&$$);
+			$3.arbre->infunction = 1;
 			arbre_eval($3.arbre, &$$);
 			$3.value = $$.value;
 			char* p = calloc(strlen($1) + strlen($3.value) + 5, sizeof(char));

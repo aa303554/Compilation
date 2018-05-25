@@ -145,15 +145,24 @@ void arbre_eval(struct Arbre* arbre, struct Block *block){
 
 		char* val = arbre_getValue(arbre);
 		char* pointer = new_pnt(block);
-		char* new_value = calloc(strlen(pointer) + 2, sizeof(char));
 
 		char* offset = calloc(strlen(val) + strlen(pointer) + strlen(array_name) + 5, sizeof(char));
 		// _tX = t + i;
 		concatenate(offset, 6, pointer, "=", array_name, "+", val, ";\n");
-		concatenate(new_value, 2, "*", pointer);
-		arbre->value = new_value;
-		arbre->variable = new_value;
 		insert_block(block, offset);
+		if(arbre->infunction == 1){
+			char* new_value = new_tmp(block);
+			char* to_pnt = calloc(strlen(pointer) + strlen(new_value) + 4, sizeof(char)); //_t3=*_t2;
+			concatenate(to_pnt, 4, new_value, "=*", pointer, ";\n");
+			arbre->value = new_value;
+			arbre->variable = new_value;
+			insert_block(block, to_pnt);
+		} else {
+			char* new_value = calloc(strlen(pointer) + 2, sizeof(char));
+			concatenate(new_value, 2, "*", pointer);
+			arbre->value = new_value;
+			arbre->variable = new_value;
+		}
 	}
 	block->value = arbre_getValue(arbre);
 	block->arbre = arbre;
