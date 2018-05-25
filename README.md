@@ -24,6 +24,8 @@ Executer dans le terminal les commandes suivantes.
 > ./mongcc < code.c > code_3d.c  
 
 Le code généré sera un code trois adresses.  
+Le programme prend en entrée un code mini-c (ici code.c) et retourne un code mini-c trois adresses (ici code_3d.c).  
+Si aucun fichier de sortie n'est spécifié, le code sera affiché sur le terminal.  
 
 **Compiler les fichiers de test en éxécutables**
 > gcc -c code_3d.c -o code_3d.o  
