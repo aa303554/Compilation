@@ -6,6 +6,7 @@
 #include "table.c"
 extern char* yytext;
 table_s* table_symboles;
+char* last_label;
 
 /* Fait la concaténation des n chaines en paramètres dans destination. On suppose qu'on a alloué assez d'espace mémoire */
 void concatenate(char* destination, int n, ...){
@@ -58,7 +59,6 @@ struct Arbre{
 		struct Block* suivant;	//bloc suivant
 		struct Arbre* arbre;	//arbre de représentation pour les expressions
 
-		char* last_label;
 		int isFunction;
 	} block;
 
@@ -192,7 +192,17 @@ iteration	:
 			$5.arbre->antiarbre = 1;
 			arbre_eval($5.arbre, &$5);
 			//on génère les labels
-			char* if_label = new_label(); char* else_label = new_label();
+			char* if_label = new_label();
+			char* else_label;
+			//On génère un else label si jamais il n'a pas été généré plus tôt (pour un break)
+			if(last_label == NULL){
+				//Non généré
+				else_label = new_label();
+			} else {
+				//Généré
+				else_label = last_label;
+				last_label = NULL;
+			}
 			//on insère les déclarations si besoin
 			dinsert_block(&$$, $3.declarations); dinsert_block(&$$, $7.declarations);
 			/* Génère l'entête de la boucle */
@@ -223,7 +233,17 @@ iteration	:
 			$3.arbre->antiarbre = 1;
 			arbre_eval($3.arbre, &$3);
 			//on génère les labels
-			char* if_label = new_label(); char* else_label = new_label();
+			char* if_label = new_label();
+			char* else_label;
+			//On génère un else label si jamais il n'a pas été généré plus tôt (pour un break)
+			if(last_label == NULL){
+				//Non généré
+				else_label = new_label();
+			} else {
+				//Généré
+				else_label = last_label;
+				last_label = NULL;
+			}
 
 			/* Génère l'entête de la boucle */
 			int header_length = strlen(if_label) + strlen($3.value) + strlen(else_label) + 14;
@@ -279,7 +299,8 @@ selection	:
 			$3.arbre->antiarbre = 1;
 			arbre_eval($3.arbre, &$3);
 			//on génère les labels
-			char* if_label = new_label(); char* else_label = new_label();
+			char* if_label = new_label();
+			char* else_label = new_label();
 			//on insère les déclarations si besoin
 			dinsert_block(&$$, $3.declarations);
 			insert_block(&$$, $3.code);
@@ -328,7 +349,15 @@ selection	:
 		}
 ;
 saut	:	
-		BREAK ';'		{ init_block(&$$); insert_block(&$$, "break;\n"); }
+		BREAK ';'		{
+			//Si pas de label n'a encore été créé, alors on en créer un nouveau
+			if(last_label == NULL){
+				last_label = new_label();
+			}
+			char* p = calloc(strlen(last_label) + 7, sizeof(char));
+			concatenate(p, 3, "goto ", last_label, ";\n");
+			init_block(&$$); insert_block(&$$, p);
+		}
 	|	RETURN ';'		{ init_block(&$$); insert_block(&$$, "return;\n"); }
 	|	RETURN expression ';'	{ 
 			init_block(&$$);
