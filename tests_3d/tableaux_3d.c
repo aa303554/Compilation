@@ -1,0 +1,32 @@
+extern int printd(int i);
+int tab[300];
+int main(void){
+int *_t1;
+int *_t2;
+_t1=tab+3;
+*_t1=3;
+_t1=tab+200;
+*_t1=200;
+_t1=tab+3;
+printd(*_t1);
+_t1=tab+200;
+printd(*_t1);
+_t1=tab+200;
+_t2=tab+3;
+*_t2=*_t1;
+_t1=tab+3;
+printd(*_t1);
+_t1=tab+0;
+*_t1=0;
+_t1=tab+400;
+*_t1=400;
+_t1=tab+0;
+printd(*_t1);
+_t1=tab+400;
+printd(*_t1);
+_t1=tab+0;
+_t2=tab+400;
+*_t2=*_t1;
+_t1=tab+400;
+printd(*_t1);
+}

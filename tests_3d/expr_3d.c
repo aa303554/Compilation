@@ -1,0 +1,33 @@
+extern int printd(int i);
+int main(void){
+int i,j,k;
+int _t1;
+int _t2;
+int _t3;
+int _t4;
+int _t5;
+int _t6;
+int _t7;
+int _t8;
+int _t9;
+int _t10;
+int _t11;
+int _t12;
+i=45000;
+j=-123;
+k=43;
+_t1=i+j;
+_t2=(_t1)*k;
+_t3=_t2/100;
+_t4=_t3*2;
+_t5=j*k;
+_t6=_t5*i;
+_t7=_t4+_t6;
+_t8=_t7-j;
+_t9=_t8<<k;
+_t10=k-j;
+_t11=_t10>>2;
+_t12=(_t9)/(_t11);
+printd(_t12);
+return 0;
+}
