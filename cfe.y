@@ -230,7 +230,6 @@ iteration	:
 	|	WHILE '(' condition ')' instruction	{
 			init_block(&$$);
 			$3.arbre->parenthesis = 1;
-			$3.arbre->antiarbre = 1;
 			arbre_eval($3.arbre, &$3);
 			//on génère les labels
 			char* if_label = new_label();
@@ -255,12 +254,12 @@ iteration	:
 			init_block(footer);
 			insert_block(footer, "goto "); insert_block(footer, if_label); insert_block(footer, ";\n");
 			insert_block(footer, else_label); insert_block(footer, ": ");
-			link_block(&$5, footer);
+			link_block(footer, &$5);
 
 			/* On assemble le code */
-			insert_block(&$$, header);
-			char* code = block_code(&$5);
+			char* code = block_code(footer);
 			insert_block(&$$, code);
+			insert_block(&$$, header);
 		}
 ;
 selection	:	
