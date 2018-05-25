@@ -11,6 +11,7 @@ Entre autre, le code généré sera un code trois adresses, et les boucles ainsi
   
 ### Détection d'erreur
 Le programme est capable de détecter quelques erreurs, tels que une opération avec deux types différents (addition d'un void et d'un int ?) ou bien une variable non déclaré avant utilisation.  
+Les erreurs sont signalées en début de fichier sous forme de commentaires.  
   
 ### Comment lancer le programme
 Executer dans le terminal les commandes suivantes.  
