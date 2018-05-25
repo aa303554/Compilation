@@ -500,7 +500,7 @@ expression	:
 		}
 	|	IDENTIFICATEUR '(' liste_expressions ')'	{
 			$$ = $3;
-			$3.arbre->function_name = $1;
+			$$.arbre->function_name = $1;
 		}
 ;
 liste_expressions	:	
