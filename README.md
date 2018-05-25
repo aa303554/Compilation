@@ -22,11 +22,13 @@ Executer dans le terminal les commandes suivantes.
   
 **Utiliser le programme de compilation**
 > ./mongcc < code.c > code_3d.c  
+
 Le code généré sera un code trois adresses.  
 
 **Compiler les fichiers de test en éxécutables**
 > gcc -c code_3d.c -o code_3d.o  
 > gcc code_3d.o printd.o -o code_3d  
+
 On suppose que le fichier printd.o existe déjà, et qu'il se trouve au même endroit que le fichier code_3d.o  
   
 Le fichier code_3d sera un éxécutable, et pourra être éxécuté de la façon suivante :  
