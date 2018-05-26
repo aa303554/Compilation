@@ -76,6 +76,13 @@ struct Arbre{
 		char* variables[100];	//nom des variables
 		char* text;		//text des declarateurs
 	} declarators;
+
+	struct Tableaux{
+		int arity;
+		int* values;
+		char* text;
+	} tabs;
+
 	char* string;
 }
 
@@ -97,6 +104,7 @@ struct Arbre{
 %type <block> liste_instructions instruction iteration selection saut affectation bloc appel liste_expressions expression variable condition
 %type <declarations> liste_declarations declaration
 %type <declarators> liste_declarateurs declarateur
+%type <tabs> tableaux_decl
 
 %left BOR BAND
 %left LSHIFT RSHIFT
@@ -140,9 +148,34 @@ liste_declarateurs	:
 ;
 declarateur	:	
 		IDENTIFICATEUR	{ $$.text = $1; $$.size = 1; $$.variables[0] = $1; }
-	|	declarateur '[' CONSTANTE ']'	{
-			char* p = calloc(strlen($1.text) + strlen($3) + 3, sizeof(char)); strcat(p, $1.text); strcat(p, "["); strcat(p, $3); strcat(p, "]");
+	|	IDENTIFICATEUR tableaux_decl	{
+			char* p = calloc(strlen($1) + strlen($2.text) + 3, sizeof(char)); strcat(p, $1); strcat(p, $2.text);
+			$$.text = p;
+			modify_array($1, $2.arity, $2.values);
+			/* AFFICHE LES INFORMATIONS SUR LE TABLEAU MODIFIE **DEBUG**
+			variable* var = get_variable($1);
+			printf("INFO ON %s :\n\tARITY : [%d]\n", var->name, var->arity);
+			for(int i = 0; i < var->arity; i++){
+				printf("\tVAL %d : [%d]\n", i, var->values[i]);
+			}
+			*/
+		}
+;
+tableaux_decl	:
+		tableaux_decl '[' CONSTANTE ']' {
 			$$ = $1;
+			$$.values[$$.arity] = $3;
+			$$.arity++;
+			char* p = calloc(strlen($1.text) + strlen($3) + 3, sizeof(char));
+			concatenate(p, 4, $1.text, "[", $3, "]");
+			$$.text = p;
+		}
+	|	'[' CONSTANTE ']' {
+			$$.arity = 1;
+			$$.values = calloc(100, sizeof(int));
+			$$.values[0] = atoi($2);
+			char* p = calloc(strlen($2) + 3, sizeof(char));
+			concatenate(p, 3, "[", $2, "]");
 			$$.text = p;
 		}
 ;

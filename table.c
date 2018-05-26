@@ -71,6 +71,8 @@ int put(int type, char* name){
 	variable* var = calloc(1, sizeof(variable));
 	var->type = type;
 	var->name = name;
+	var->arity = 0;
+	var->values = calloc(100, sizeof(int));
 	hash = hash_var(name);
 	while(current_table->variables[hash] != NULL){
 		if(strcmp(current_table->variables[hash]->name, name) == 0){
@@ -144,6 +146,44 @@ int get_type(char* name){
 		return current_table->variables[found]->type;
 	}
 	return -1;
+}
+
+//Modifie les valeurs d'un tableaux
+int modify_array(char* name, int arity, int* values){
+	int range = current_range;
+	int found = -1;
+	while(found == -1 && range >= 0){
+		found = search_range(name, range);
+		range--;
+	}
+	if(found >= 0){
+		table_s* current_table = table_symbole;
+		for(int i = 0; i < range+1; i++){
+			current_table = current_table->below;
+		}
+		current_table->variables[found]->arity = arity;
+		current_table->variables[found]->values = values;
+		return 1;
+	}
+	return 0;
+}
+
+//Retourne la variable avec le nom name
+variable* get_variable(char* name){
+	int range = current_range;
+	int found = -1;
+	while(found == -1 && range >= 0){
+		found = search_range(name, range);
+		range--;
+	}
+	if(found >= 0){
+		table_s* current_table = table_symbole;
+		for(int i = 0; i < range+1; i++){
+			current_table = current_table->below;
+		}
+		return current_table->variables[found];
+	}
+	return NULL;
 }
 
 int check_operation(char* var1, char* op, char* var2){
