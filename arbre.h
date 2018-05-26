@@ -33,6 +33,24 @@ void init_arbre(struct Block* block, char* variable, char* racine, struct Arbre*
 	arbre->function_name = NULL;
 }
 
+//Initialise l'arbre
+void arbre_init(struct Arbre* arbre, char* variable, char* racine, struct Arbre* gauche, struct Arbre* droit){
+	arbre->variable = variable;
+	arbre->racine = racine;
+	setAntiracine(arbre, racine);
+	arbre->gauche = gauche;
+	arbre->droit = droit;
+	arbre->isReturn = 0;
+	arbre->feuille = (gauche == NULL) && (droit == NULL);
+	char* value = "";
+	arbre->minus = 0;
+	arbre->parenthesis = 0;
+	arbre->isnot = 0;
+	arbre->antiarbre = 0;
+	arbre->array_name = NULL;
+	arbre->function_name = NULL;
+}
+
 //Renvoie la racine d'un arbre
 char* arbre_getRacine(struct Arbre* arbre){
 	if(arbre->antiarbre != 0){
@@ -166,4 +184,29 @@ void arbre_eval(struct Arbre* arbre, struct Block *block){
 	}
 	block->value = arbre_getValue(arbre);
 	block->arbre = arbre;
+}
+
+
+struct Arbre* arbre_tableaux(struct Arbre* arbre, int position, int arity, int* values){
+	if(arbre->multi_array == 1){
+		struct Arbre* new_left = calloc(1, sizeof(struct Arbre));
+		struct Arbre* new_right = calloc(1, sizeof(struct Arbre));
+		new_right = arbre_tableaux(arbre->droit, position, arity, values);
+		new_left = arbre_tableaux(arbre->gauche, position+1, arity, values);
+		arbre->racine = "+";
+		arbre->droit = new_right;
+		arbre->gauche = new_left;
+		return arbre;
+	} else {
+		if(position == 0){
+			return arbre;
+		}
+		struct Arbre* new_arbre = calloc(1, sizeof(struct Arbre));
+		struct Arbre* constante = calloc(1, sizeof(struct Arbre));
+		char* strnum = calloc(10, sizeof(char));
+		sprintf(strnum, "%d", values[arity-position]);
+		arbre_init(constante, "", strnum, NULL, NULL);
+		arbre_init(new_arbre, "", "*", arbre, constante);
+		return new_arbre;
+	}
 }

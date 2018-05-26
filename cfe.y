@@ -34,6 +34,7 @@ struct Arbre{
 	char* array_name;
 	char* function_name;
 	int infunction;
+	int multi_array;
 };
 
 %}
@@ -54,13 +55,15 @@ struct Arbre{
 		
 		char* value;		//Valeur finale du bloc (chiffre ou variable) pour les expressions.
 		int bracket;		//bloc entouré d'accolades ? 0 := non ; 1 := oui
-		int temp_var;		//Nombre de variable temporaires crées
+		int temp_var;		//Nombre de variable temporaires créés
+		int temp_pnt;		//Nombre de pointeurs créés
 		
 		struct Block* precedent;//bloc précédent
 		struct Block* suivant;	//bloc suivant
 		struct Arbre* arbre;	//arbre de représentation pour les expressions
 
 		int isFunction;
+		int isArray;
 	} block;
 
 	struct Declarations{
@@ -101,7 +104,7 @@ struct Arbre{
 %type <string> programme fonction liste_fonctions
 %type <string> type
 %type <string> liste_parms parm
-%type <block> liste_instructions instruction iteration selection saut affectation bloc appel liste_expressions expression variable condition
+%type <block> liste_instructions instruction iteration selection saut affectation bloc appel liste_expressions expression variable condition tableaux
 %type <declarations> liste_declarations declaration
 %type <declarators> liste_declarateurs declarateur
 %type <tabs> tableaux_decl
@@ -149,9 +152,17 @@ liste_declarateurs	:
 declarateur	:	
 		IDENTIFICATEUR	{ $$.text = $1; $$.size = 1; $$.variables[0] = $1; }
 	|	IDENTIFICATEUR tableaux_decl	{
-			char* p = calloc(strlen($1) + strlen($2.text) + 3, sizeof(char)); strcat(p, $1); strcat(p, $2.text);
-			$$.text = p;
 			modify_array($1, $2.arity, $2.values);
+			variable* var = get_variable($1);
+			/* Linéarise la déclaration de tableaux */
+			int array_size = var->values[var->arity-1];
+			for(int i = 0; i < var->arity-1; i++){
+				array_size *= var->values[i];
+			}
+			char* p = calloc(strlen($1) + 12, sizeof(char));
+			sprintf(p, "%s[%d]", $1, array_size);
+			$$.text = p;
+
 			/* AFFICHE LES INFORMATIONS SUR LE TABLEAU MODIFIE **DEBUG**
 			variable* var = get_variable($1);
 			printf("INFO ON %s :\n\tARITY : [%d]\n", var->name, var->arity);
@@ -164,19 +175,13 @@ declarateur	:
 tableaux_decl	:
 		tableaux_decl '[' CONSTANTE ']' {
 			$$ = $1;
-			$$.values[$$.arity] = $3;
+			$$.values[$$.arity] = atoi($3);
 			$$.arity++;
-			char* p = calloc(strlen($1.text) + strlen($3) + 3, sizeof(char));
-			concatenate(p, 4, $1.text, "[", $3, "]");
-			$$.text = p;
 		}
 	|	'[' CONSTANTE ']' {
 			$$.arity = 1;
 			$$.values = calloc(100, sizeof(int));
 			$$.values[0] = atoi($2);
-			char* p = calloc(strlen($2) + 3, sizeof(char));
-			concatenate(p, 3, "[", $2, "]");
-			$$.text = p;
 		}
 ;
 fonction	:	
@@ -424,7 +429,7 @@ affectation	:
 			insert_block(&$$, $1.code);
 			insert_block(&$$, p);
 			dinsert_block(&$$, $1.declarations); 
-			dinsert_block(&$$, $3.declarations); 
+			dinsert_block(&$$, $3.declarations);
 		}
 ;
 bloc	:	
@@ -460,14 +465,30 @@ variable	:
 			}
 			$$.value = $1;
 		}
-	|	variable '[' expression ']'	{
+	|	variable tableaux	{
 			init_block(&$$);
 			if($1.arbre != NULL){
 				arbre_eval($1.arbre, &$$);
 			}
-			$$.arbre = $3.arbre;
+			variable* array = get_variable($$.value); //récupère les informations sur le tableau
+			if(array->arity > 1){
+				$$.arbre = arbre_tableaux($2.arbre, 0, array->arity, array->values);
+			} else {
+				$$.arbre = $2.arbre;
+			}
 			$$.arbre->isReturn = 1;
 			$$.arbre->array_name = $$.value;
+		}
+;
+
+tableaux	:
+		tableaux '[' expression ']' {
+			init_block(&$$);
+			init_arbre(&$$, "", " ", $1.arbre, $3.arbre);
+			$$.arbre->multi_array = 1;
+		}
+	|	'[' expression ']' {
+			$$ = $2;
 		}
 ;
 expression	:	

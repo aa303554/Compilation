@@ -33,6 +33,8 @@ void init_block(struct Block *block){
 
 	//Aucune variable temporaire créée
 	block->temp_var = 0;
+	block->temp_pnt = 0;
+
 	//Nombre de variables
 	block->var_num = 0;
 	//On alloue la mémoire pour la valeur (utile pour les expressions);
@@ -175,8 +177,8 @@ char* new_tmp(struct Block *block){
 /* Ajoute un nouveau pointeur dans le code et retourne sa valeur */
 char* new_pnt(struct Block *block){
 	char* var_name = calloc(5, sizeof(char));
-	block->temp_var++;
-	sprintf(var_name, "_t%d", block->temp_var);
+	sprintf(var_name, "_t%d", (100-block->temp_pnt));
+	block->temp_pnt++;
 	char* p = calloc(10, sizeof(char));
 	concatenate(p, 3, "int *", var_name, ";\n");
 	dinsert_block(block, p);

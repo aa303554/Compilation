@@ -1,9 +1,9 @@
 /* TEST TABLEAUX MINIC */
 extern int printd(int i);
 
-int tab[300];
 
 int main() {
+  int tab[300];
   tab[3] = 3;
   tab[200] = 200;
   printd(tab[3]);
