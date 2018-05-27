@@ -3,6 +3,7 @@
 Projet de compilation 2017-2018  
 L3 Informatique - Valrose  
 MALALEL Steve & JUNG Victor  
+avec la collaboration intellectuelle de VAN STRAATEN Arnaud  
   
 **tests_source/** : contient tous les fichiers .c de tests  
 **tests_3d/** : contient tous les fichiers trois adresses générés à partir des fichiers .c de tests  
