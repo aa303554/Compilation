@@ -17,6 +17,7 @@ void save_value(char* value){
 }
 
 int last_type = -1;
+int selection = 0;
 
 %}
 
@@ -100,15 +101,15 @@ COMMENTAIRES	("/"+"\*"+(.[^\*/]|{WHITESPACE})*"\*"+"/"+|"//".*\n)
 {WHITESPACE}		last_type = -1;
 
 
-{FOR}			return FOR;
-{WHILE}			return WHILE;
+{FOR}			selection = 1; return FOR;
+{WHILE}			selection = 1; return WHILE;
 
-{IF}			return IF;
-{THEN}			return THEN;
-{ELSE}			return ELSE;
-{SWITCH}		return SWITCH;
-{CASE}			return CASE;
-{DEFAULT}		return DEFAULT;
+{IF}			selection = 1; return IF;
+{THEN}			selection = 1; return THEN;
+{ELSE}			selection = 1; return ELSE;
+{SWITCH}		selection = 1; return SWITCH;
+{CASE}			selection = 1; return CASE;
+{DEFAULT}		selection = 1; return DEFAULT;
 
 {RETURN}		return RETURN;
 {BREAK}			return BREAK;
@@ -143,7 +144,7 @@ COMMENTAIRES	("/"+"\*"+(.[^\*/]|{WHITESPACE})*"\*"+"/"+|"//".*\n)
 {GEQ}			return GEQ;
 {EQ}			return EQ;
 {NEQ}			return NEQ;
-{OPENBRACKET}		new_table(); return yytext[0];
-{CLOSEBRACKET}		destroy_table(); return yytext[0];
+{OPENBRACKET}		if(selection != 1){new_table();}return yytext[0];
+{CLOSEBRACKET}		if(selection != 1){destroy_table();} selection = 0; return yytext[0];
 .			return yytext[0]; /* Echec de reconnaissance -> erreur OU caractères spécial (";" "," "{" "}" etc ...) */
 %%

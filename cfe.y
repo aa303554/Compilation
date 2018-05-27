@@ -114,8 +114,8 @@ struct Arbre{
 }
 
 %{
-#include "block.h"
-#include "arbre.h"
+#include "block.c"
+#include "arbre.c"
 %}
 
 %token GOTO
@@ -275,6 +275,7 @@ iteration	:
 			init_block(&$$);
 			$5.arbre->parenthesis = 1;
 			$5.arbre->antiarbre = 1;
+			$9.bracket = 0;
 			arbre_eval($5.arbre, &$5);
 			//on génère les labels
 			char* if_label = new_label();
@@ -300,20 +301,22 @@ iteration	:
 			init_block(footer);
 			insert_block(footer, "goto "); insert_block(footer, if_label); insert_block(footer, ";\n");
 			insert_block(footer, else_label); insert_block(footer, ": ");
-			link_block(&$9, footer);
+			insert_block(&$9, $7.code);
+			insert_block(&$9, ";\n");
+			insert_block(&$9, footer->code);
 
 			/* On assemble le code */
 			insert_block(&$$, $3.code);
 			insert_block(&$$, ";\n");
 			insert_block(&$$, header);
-			insert_block(&$7, ";\n");
-			insert_block(&$9, $7.code);
-			dinsert_block(&$9, $7.declarations);
-			char* code = block_code(&$9);
-			insert_block(&$$, code);
+			dinsert_block(&$$, $7.declarations);
+			//char* code = block_code(&$9);
+			insert_block(&$$, $9.code);
+			dinsert_block(&$$, $9.declarations);
 		}
 	|	WHILE '(' condition ')' instruction	{
 			init_block(&$$);
+			$5.bracket = 0;
 			$3.arbre->parenthesis = 1;
 			arbre_eval($3.arbre, &$3);
 			//on génère les labels
@@ -342,8 +345,10 @@ iteration	:
 			link_block(footer, &$5);
 
 			/* On assemble le code */
-			char* code = block_code(footer);
-			insert_block(&$$, code);
+			//char* code = block_code(footer);
+			insert_block(&$$, footer->code);
+			insert_block(&$$, $5.code);
+			dinsert_block(&$$, $5.declarations);
 			insert_block(&$$, header);
 		}
 ;
@@ -351,6 +356,7 @@ selection	:
 		IF '(' condition ')' instruction %prec THEN
 		{	
 			init_block(&$$);
+			$5.bracket = 0;
 			$3.arbre->parenthesis = 1;
 			$3.arbre->antiarbre = 1;
 			arbre_eval($3.arbre, &$3);
@@ -374,11 +380,14 @@ selection	:
 			link_block(&$5, footer);
 			insert_block(&$$, header);
 			char* code = block_code(&$5);
-			insert_block(&$$, code);
+			insert_block(&$$, $5.code);
+			dinsert_block(&$$, $5.declarations);
+			insert_block(&$$, footer->code);
 		}
 	|	IF '(' condition ')' instruction ELSE instruction
 		{
 			init_block(&$$);
+			$5.bracket = 0;
 			$3.arbre->parenthesis = 1;
 			$3.arbre->antiarbre = 1;
 			arbre_eval($3.arbre, &$3);
@@ -403,11 +412,16 @@ selection	:
 			insert_block(&$7, ": ");
 
 			/* On assemble le code */
-			link_block(&$5, footer);
-			link_block(footer, &$7);
 			insert_block(&$$, header);
-			char* code = block_code(&$5);
-			insert_block(&$$, code);
+			insert_block(&$$, $5.code);
+			dinsert_block(&$$, $5.declarations);
+			//link_block(&$5, footer);
+			insert_block(&$$, footer->code);
+			insert_block(&$$, $7.code);
+			dinsert_block(&$$, $7.declarations);
+			//link_block(footer, &$7);
+			//char* code = block_code(&$5);
+			//insert_block(&$$, code);
 		}
 	|	SWITCH '(' expression ')' instruction
 		{
