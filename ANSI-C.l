@@ -101,15 +101,15 @@ COMMENTAIRES	("/"+"\*"+(.[^\*/]|{WHITESPACE})*"\*"+"/"+|"//".*\n)
 {WHITESPACE}		last_type = -1;
 
 
-{FOR}			selection = 1; return FOR;
-{WHILE}			selection = 1; return WHILE;
+{FOR}			selection++; return FOR;
+{WHILE}			selection++; return WHILE;
 
-{IF}			selection = 1; return IF;
-{THEN}			selection = 1; return THEN;
-{ELSE}			selection = 1; return ELSE;
-{SWITCH}		selection = 1; return SWITCH;
-{CASE}			selection = 1; return CASE;
-{DEFAULT}		selection = 1; return DEFAULT;
+{IF}			selection++; return IF;
+{THEN}			selection++; return THEN;
+{ELSE}			selection++; return ELSE;
+{SWITCH}		selection++; return SWITCH;
+{CASE}			selection++; return CASE;
+{DEFAULT}		selection++; return DEFAULT;
 
 {RETURN}		return RETURN;
 {BREAK}			return BREAK;
@@ -144,7 +144,7 @@ COMMENTAIRES	("/"+"\*"+(.[^\*/]|{WHITESPACE})*"\*"+"/"+|"//".*\n)
 {GEQ}			return GEQ;
 {EQ}			return EQ;
 {NEQ}			return NEQ;
-{OPENBRACKET}		if(selection != 1){new_table();}return yytext[0];
-{CLOSEBRACKET}		if(selection != 1){destroy_table();} selection = 0; return yytext[0];
+{OPENBRACKET}		if(selection == 0){new_table();}return yytext[0];
+{CLOSEBRACKET}		if(selection == 0){destroy_table();}else{selection--;} return yytext[0];
 .			return yytext[0]; /* Echec de reconnaissance -> erreur OU caractères spécial (";" "," "{" "}" etc ...) */
 %%
