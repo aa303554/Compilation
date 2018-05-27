@@ -7,6 +7,15 @@
 extern char* yytext;
 table_s* table_symboles;
 char* last_label;
+char* switch_label;
+int return_statement=-1;
+
+//Structure pour stocker les valeurs des cases
+struct Cases{
+	char* labels[100];
+	char* values[100];
+	int size;
+} cases;
 
 /* Fait la concaténation des n chaines en paramètres dans destination. On suppose qu'on a alloué assez d'espace mémoire */
 void concatenate(char* destination, int n, ...){
@@ -17,6 +26,7 @@ void concatenate(char* destination, int n, ...){
 	}
 	va_end(valist);
 }
+	
 
 struct Arbre{
 	char* racine;	//symbole de la racine. ex : "*", "+", "variable", "4", etc...
@@ -118,6 +128,7 @@ struct Arbre{
 %nonassoc THEN
 %nonassoc ELSE
 %left REL
+%left DECL
 %start programme
 %%
 programme	:	
@@ -176,12 +187,12 @@ declarateur	:
 		}
 ;
 tableaux_decl	:
-		tableaux_decl '[' CONSTANTE ']' {
+		tableaux_decl '[' CONSTANTE ']' %prec DECL {
 			$$ = $1;
 			$$.values[$$.arity] = atoi($3);
 			$$.arity++;
 		}
-	|	'[' CONSTANTE ']' {
+	|	'[' CONSTANTE ']' %prec DECL {
 			$$.arity = 1;
 			$$.values = calloc(100, sizeof(int));
 			$$.values[0] = atoi($2);
@@ -189,10 +200,26 @@ tableaux_decl	:
 ;
 fonction	:	
 		type IDENTIFICATEUR '(' liste_parms ')' bloc {
+			int type = get_type($2);
+			/* Contrôle du type de retour */
+			if(type == 1){
+				/* Si la fonction est de type int et qu'elle ne renvoie rien (void) */
+				if(return_statement != 1){
+					printf("/* WARNING : FUNCTION %s MUST RETURN AN INT ! (added return 0; statement) */\n", $2);
+					insert_block(&$6, "return 0;\n");
+				}
+			} else {
+				/* Si la fonction est de type void et qu'elle ne renvoie rien, on ajoute un return; (sans avertissement) */
+				if(return_statement == -1){
+					insert_block(&$6, "return;\n");
+				}
+			}
+			return_statement = -1;
 			char* bloc = block_code(&$6);
 			char* p = calloc(strlen($1) + strlen($2) + strlen($4) + strlen(bloc) + 8, sizeof(char));
 			concatenate(p, 7, $1, " ", $2, "(", $4, ")", bloc);
 			$$ = p;
+					
 		}
 	|	EXTERN type IDENTIFICATEUR '(' liste_parms ')' ';'	{
 			char* p = calloc(strlen($2) + strlen($3) + strlen($5) + 12, sizeof(char));
@@ -223,10 +250,10 @@ liste_instructions :
 	|	{ init_block(&$$); }
 ;
 instruction	:	
-		iteration	{ $$ = $1; }
-	|	selection	{ $$ = $1; }
-	|	saut		{ $$ = $1; }
-	|	affectation ';'	{ insert_block(&$1, ";\n"); $$ = $1; }
+		iteration	{ $$ = $1; return_statement = -1;}
+	|	selection	{ $$ = $1; return_statement = -1;}
+	|	saut		{ $$ = $1;}
+	|	affectation ';'	{ insert_block(&$1, ";\n"); $$ = $1;}
 	|	bloc		{ $$ = $1; }
 	|	appel		{ $$ = $1; }
 ;
@@ -373,23 +400,71 @@ selection	:
 		{
 			init_block(&$$);
 			arbre_eval($3.arbre, &$3);
-			char* header = calloc(strlen($3.value) + 10, sizeof(char)); concatenate(header, 3, "switch (", $3.value, ")"); 
+			char* switch_label = arbre_getValue($3.arbre);
+
+			if(last_label != NULL){
+				char* goto_break = calloc(strlen(last_label) + 3, sizeof(char));
+				concatenate(goto_break, 2, last_label, " :");
+				insert_block(&$5, goto_break);
+				last_label = NULL;
+			}
 			insert_block(&$$, $3.code);
-			insert_block(&$$, header);
+
+			/* On génère la table de saut */
+			for(int i = 0; i < cases.size; i++){
+				//si ce n'est pas un default
+				if(cases.values[i] != NULL){
+					char* jump_cond = calloc(strlen(cases.labels[i]) + strlen(cases.values[i]) + strlen(switch_label) + 16, sizeof(char));
+					concatenate(jump_cond, 7, "if (", switch_label, "==", cases.values[i], ") goto ", cases.labels[i], ";\n");
+					insert_block(&$$, jump_cond);
+				} else {
+					char* jump_default = calloc(strlen(cases.labels[i]) + 8, sizeof(char));
+					concatenate(jump_default, 3, "goto ", cases.labels[i], ";\n");
+					insert_block(&$$, jump_default);
+				}
+			}
+			cases.size = 0;
 			dinsert_block(&$$, $3.declarations);
 			concatenate_block(&$$, &$5);
 		}
 	|	CASE CONSTANTE ':' instruction
 		{
-			init_block(&$$); char* header = calloc(strlen($2) + 6, sizeof(char)); concatenate(header, 3, "case ", $2, ":"); 
-			insert_block(&$$, header);
-			concatenate_block(&$$, &$4);
+			//on génère le label
+			char* if_label = new_label();
+
+			//On ajoute les informations dans la structures des cases.
+			cases.labels[cases.size] = if_label;
+			cases.values[cases.size] = $2;
+			cases.size++;
+
+			/* Génère le pied de la boucle selection */
+			char* footer = calloc(strlen(if_label) + 3, sizeof(char));
+			concatenate(footer, 2, if_label, ": ");
+
+			/* On assemble le code */
+			init_block(&$$);
+			insert_block(&$$, footer);
+			char* code = block_code(&$4);
+			insert_block(&$$, code);
 		}
-	|	DEFAULT ':' instruction
-		{
-			init_block(&$$); char* header = calloc(8, sizeof(char)); concatenate(header, 1, "default:"); 
-			insert_block(&$$, header);
-			concatenate_block(&$$, &$3);
+	|	DEFAULT ':' instruction {
+			//on génère le label
+			char* if_label = new_label();
+
+			//On ajoute les informations dans la structures des cases.
+			cases.labels[cases.size] = if_label;
+			cases.values[cases.size] = NULL;	//default
+			cases.size++;
+
+			/* Génère le pied de la boucle selection */
+			char* footer = calloc(strlen(if_label) + 3, sizeof(char));
+			concatenate(footer, 2, if_label, ": ");
+
+			/* On assemble le code */
+			init_block(&$$);
+			insert_block(&$$, footer);
+			char* code = block_code(&$3);
+			insert_block(&$$, code);
 		}
 ;
 saut	:	
@@ -402,7 +477,7 @@ saut	:
 			concatenate(p, 3, "goto ", last_label, ";\n");
 			init_block(&$$); insert_block(&$$, p);
 		}
-	|	RETURN ';'		{ init_block(&$$); insert_block(&$$, "return;\n"); }
+	|	RETURN ';'		{ init_block(&$$); insert_block(&$$, "return;\n"); return_statement = 0; /*on ne retourne rien (void)*/}
 	|	RETURN expression ';'	{ 
 			init_block(&$$);
 			if($2.arbre != NULL){
@@ -416,6 +491,7 @@ saut	:
 			insert_block(&$$, $2.code);
 			insert_block(&$$, p);
 			dinsert_block(&$$, $2.declarations);
+			return_statement = 1;	//on retourne une valeur
 		}
 ;
 affectation	:	

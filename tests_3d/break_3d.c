@@ -1,3 +1,4 @@
+/* WARNING : FUNCTION main MUST RETURN AN INT ! (added return 0; statement) */
 extern int printd(int i);
 int main(void){
 int i;
@@ -10,4 +11,5 @@ L2: i=i+1;
 }
 goto L3;
 L1: printd(i);
+return 0;
 }
