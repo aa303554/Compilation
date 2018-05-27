@@ -7,7 +7,7 @@ MALALEL Steve & JUNG Victor
 **tests_source/** : contient tous les fichiers .c de tests  
 **tests_3d/** : contient tous les fichiers trois adresses générés à partir des fichiers .c de tests  
 **tests_compils/fichiers-o/** : contient tous les fichiers .o générés à partir des fichiers trois adresses  
-**tests_compils/executables/** : contient tous les executables générés à partir des fichiers .o trois adresses (\_3d) ainsi que les executables générés à partir des fichiers .c sources.  
+**tests_compils/executables/** : contient tous les executables générés à partir des fichiers .o trois adresses (\_3d) ainsi que les executables générés à partir des fichiers .c sources (\_gcc)  
   
 ## Le programme
 ### Ce que fait le programme
