@@ -139,6 +139,7 @@ void arbre_eval(struct Arbre* arbre, struct Block *block){
 			concatenate(value, 6, arbre->variable, "=", gauche, arbre_getRacine(arbre), droit, ";\n");
 			arbre->value = arbre->variable;
 			insert_block(block, value);
+			arbre->feuille = 1;
 		} else {
 			char* value = calloc(strlen(gauche) + strlen(droit) + strlen(arbre_getRacine(arbre)) + 1, sizeof(char));
 			concatenate(value, 3, gauche, arbre_getRacine(arbre), droit);
@@ -153,6 +154,7 @@ void arbre_eval(struct Arbre* arbre, struct Block *block){
 		char* new_value = calloc(strlen(val) + strlen(arbre->variable) + 4, sizeof(char));
 		concatenate(new_value, 4, arbre->variable, "=", val, ";\n");
 		arbre->value = arbre->variable;
+		arbre->feuille = 1;
 		insert_block(block, new_value);
 		arbre->function_name = NULL;
 	}
@@ -160,7 +162,6 @@ void arbre_eval(struct Arbre* arbre, struct Block *block){
 		/* t[i] -> [t : array_name] ; [i : val] */
 		char* array_name = arbre->array_name;
 		arbre->array_name = NULL;
-
 		char* val = arbre_getValue(arbre);
 		char* pointer = new_pnt(block);
 
@@ -174,11 +175,13 @@ void arbre_eval(struct Arbre* arbre, struct Block *block){
 			concatenate(to_pnt, 4, new_value, "=*", pointer, ";\n");
 			arbre->value = new_value;
 			arbre->variable = new_value;
+			arbre->feuille = 1;
 			insert_block(block, to_pnt);
 		} else {
 			char* new_value = calloc(strlen(pointer) + 2, sizeof(char));
 			concatenate(new_value, 2, "*", pointer);
 			arbre->value = new_value;
+			arbre->feuille = 1;
 			arbre->variable = new_value;
 		}
 	}
