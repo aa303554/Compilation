@@ -12,6 +12,12 @@ Entre autre, le code généré sera un code trois adresses, et les boucles ainsi
 ### Détection d'erreur
 Le programme est capable de détecter quelques erreurs, tels que une opération avec deux types différents (addition d'un void et d'un int ?) ou bien une variable non déclaré avant utilisation.  
 Les erreurs sont signalées en début de fichier sous forme de commentaires.  
+
+### Correction d'erreur  
+Le programme est capable de réaliser une détection et correction d'erreur : une fonction int qui ne retourne aucune valeur.  
+On corrige cette erreur de la même manière que le compilateur C le fait : on retourne la valeur 0.  
+On ajoute également un retour pour les fonctions de type void, afin de coller un peu plus à un langage bas niveau (fin de fonction / dépiler de manière explicite).  
+L'erreur est signalée au début de fichier sous forme de commentaires.  
   
 ### Comment lancer le programme
 Executer dans le terminal les commandes suivantes.  
@@ -46,6 +52,7 @@ code_3d.c : fichier de sortie (3 adresses).
 
 ### Execution des tests
 OK...add  
+OK...break  
 OK...compteur  
 OK...cond  
 OK...div  
@@ -57,9 +64,7 @@ OK...mul
 OK...neg  
 OK...rsh  
 OK...sub  
+OK..switch  
 OK...tableaux  
-OK...variables  
-OK...break  
 OK...tableaux-multi  
-
-NO...switch  
+OK...variables  
