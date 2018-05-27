@@ -5,10 +5,24 @@
 #include <stdarg.h>
 #include "table.c"
 extern char* yytext;
+extern int yylex();
+extern int yyparse();
+
 table_s* table_symboles;
 char* last_label;
 char* switch_label;
 int return_statement=-1;
+
+//Fonction d'erreur
+void yyerror(const char *s) { 
+	fprintf(stderr, "Error : %s\n", s); 
+}
+//Fonction main
+int main(){
+	table_symbole = calloc(1, sizeof(table_s));
+	yyparse();
+	return 1;
+}
 
 //Structure pour stocker les valeurs des cases
 struct Cases{
@@ -128,7 +142,6 @@ struct Arbre{
 %nonassoc THEN
 %nonassoc ELSE
 %left REL
-%left DECL
 %start programme
 %%
 programme	:	
@@ -187,12 +200,12 @@ declarateur	:
 		}
 ;
 tableaux_decl	:
-		tableaux_decl '[' CONSTANTE ']' %prec DECL {
+		tableaux_decl '[' CONSTANTE ']' {
 			$$ = $1;
 			$$.values[$$.arity] = atoi($3);
 			$$.arity++;
 		}
-	|	'[' CONSTANTE ']' %prec DECL {
+	|	'[' CONSTANTE ']' {
 			$$.arity = 1;
 			$$.values = calloc(100, sizeof(int));
 			$$.values[0] = atoi($2);
@@ -547,11 +560,9 @@ variable	:
 			}
 			$$.value = $1;
 		}
-	|	variable tableaux	{
+	|	IDENTIFICATEUR tableaux	{
 			init_block(&$$);
-			if($1.arbre != NULL){
-				arbre_eval($1.arbre, &$$);
-			}
+			$$.value = $1;
 			variable* array = get_variable($$.value); //récupère les informations sur le tableau
 			if(array->arity > 1){
 				$$.arbre = arbre_tableaux($2.arbre, 0, array->arity, array->values);
@@ -684,11 +695,3 @@ binary_comp	:
 	|	NEQ	{ $$ = "!="; }
 ;
 %%
-void yyerror(const char *s) { 
-	fprintf(stderr, "Error : %s\n", s); 
-}
-int main(){
-	table_symbole = calloc(1, sizeof(table_s));
-	yyparse();
-	return 1;
-}
