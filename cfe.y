@@ -438,7 +438,8 @@ selection	:
 			}
 			cases.size = 0;
 			dinsert_block(&$$, $3.declarations);
-			concatenate_block(&$$, &$5);
+			dinsert_block(&$$, $5.declarations);
+			insert_block(&$$, $5.code);
 		}
 	|	CASE CONSTANTE ':' instruction
 		{
@@ -457,8 +458,8 @@ selection	:
 			/* On assemble le code */
 			init_block(&$$);
 			insert_block(&$$, footer);
-			char* code = block_code(&$4);
-			insert_block(&$$, code);
+			insert_block(&$$, $4.code);
+			dinsert_block(&$$, $4.declarations);
 		}
 	|	DEFAULT ':' instruction {
 			//on génère le label
@@ -476,8 +477,9 @@ selection	:
 			/* On assemble le code */
 			init_block(&$$);
 			insert_block(&$$, footer);
-			char* code = block_code(&$3);
-			insert_block(&$$, code);
+			//char* code = block_code(&$3);
+			insert_block(&$$, $3.code);
+			dinsert_block(&$$, $3.declarations);
 		}
 ;
 saut	:	
@@ -587,8 +589,7 @@ tableaux	:
 expression	:	
 		'(' expression ')'	{
 			$$ = $2;
-			//on lève le flag indicant que la valeur doit être entre parenthèses
-			$$.arbre->parenthesis = 1;
+			//pas besoin de parenthèses dans le code trois adresses
 		}
 	|	expression BAND expression %prec BAND	{ 
 			init_block(&$$);

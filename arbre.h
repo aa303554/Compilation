@@ -185,6 +185,15 @@ void arbre_eval(struct Arbre* arbre, struct Block *block){
 			arbre->variable = new_value;
 		}
 	}
+	if((arbre->minus != 0 && arbre->variable != "") || (arbre->minus != 0 && arbre->infunction != 0)){
+		char* new_value = new_tmp(block);
+		char* neg = calloc(strlen(new_value) + strlen(arbre_getValue(arbre)) + 3, sizeof(char));
+		concatenate(neg, 4, new_value, "=", arbre_getValue(arbre), ";\n");
+		insert_block(block, neg);
+		arbre->variable = new_value;
+		arbre->value = new_value;
+		arbre->minus = 0;
+	}
 	block->value = arbre_getValue(arbre);
 	block->arbre = arbre;
 }
