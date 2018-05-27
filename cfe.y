@@ -94,6 +94,7 @@ struct Arbre{
 #include "arbre.h"
 %}
 
+%token GOTO
 %token <ident> IDENTIFICATEUR 
 %token <value> CONSTANTE
 %token <string> VOID INT FOR WHILE IF ELSE SWITCH CASE DEFAULT
@@ -124,24 +125,26 @@ programme	:
 ;
 liste_declarations	:	
 		liste_declarations declaration {
-			char* p = calloc(strlen($1.text) + strlen($2.text) + 2, sizeof(char)); strcat(p, $1.text); strcat(p, $2.text);
+			char* p = calloc(strlen($1.text) + strlen($2.text) + 2, sizeof(char)); 
+			concatenate(p, 2, $1.text, $2.text);
 			$$.text = p;
 		}
 	|	{ $$.text = "";}
 ;
 liste_fonctions	:	
-		liste_fonctions fonction	{char* p = calloc(strlen($1) + strlen($2) + 1, sizeof(char)); strcat(p, $1); strcat(p, $2); $$ = p;}
+		liste_fonctions fonction	{char* p = calloc(strlen($1) + strlen($2) + 1, sizeof(char)); concatenate(p, 2, $1, $2); $$ = p;}
 |               fonction	{ $$ = $1; }
 ;
 declaration	:	
 		type liste_declarateurs ';'	{
-			char* p = calloc(strlen($1) + strlen($2.text) + 4, sizeof(char)); strcat(p, $1); strcat(p, " "); strcat(p, $2.text); strcat(p, ";\n");
+			char* p = calloc(strlen($1) + strlen($2.text) + 4, sizeof(char)); concatenate(p, 4, $1, " ",  $2.text, ";\n");
 			$$.text = p;
 		}
 ;
 liste_declarateurs	:	
 		liste_declarateurs ',' declarateur	{
-			char* p = calloc(strlen($1.text) + strlen($3.text) + 2, sizeof(char)); strcat(p, $1.text); strcat(p, ","); strcat(p, $3.text);
+			char* p = calloc(strlen($1.text) + strlen($3.text) + 2, sizeof(char));
+			concatenate(p, 3, $1.text, ",", $3.text);
 			$$ = $1;
 			$$.text = p;
 			$$.variables[$$.size] = $3.variables[0];
@@ -191,19 +194,22 @@ fonction	:
 			concatenate(p, 7, $1, " ", $2, "(", $4, ")", bloc);
 			$$ = p;
 		}
-	|	EXTERN type IDENTIFICATEUR '(' liste_parms ')' ';'	{ char* p = calloc(strlen($2) + strlen($3) + strlen($5) + 12, sizeof(char));
-			strcat(p, "extern "); strcat(p, $2); strcat(p, " "); strcat(p, $3); strcat(p, "("); strcat(p, $5); strcat(p, ");\n"); $$ = p; }
+	|	EXTERN type IDENTIFICATEUR '(' liste_parms ')' ';'	{
+			char* p = calloc(strlen($2) + strlen($3) + strlen($5) + 12, sizeof(char));
+			concatenate(p, 7, "extern ", $2, " ", $3, "(", $5, ");\n");
+			$$ = p;
+		}
 ;
 type	:	
 		VOID	{ $$ = "void"; }
 	|	INT	{ $$ = "int"; }
 ;
 liste_parms	:	
-		parm ',' liste_parms { char* p = calloc(strlen($1) +  strlen($3) + 2, sizeof(char)); strcat(p, $1); strcat(p, ", "); strcat(p, $3); $$ = p; }
+		parm ',' liste_parms { char* p = calloc(strlen($1) +  strlen($3) + 2, sizeof(char)); concatenate(p, 3, $1, ", ", $3); $$ = p; }
 	|	parm	{ $$ = $1; }
 ;
 parm	:	
-		INT IDENTIFICATEUR	{ char* p = calloc(strlen($2) + 5, sizeof(char)); strcat(p, "int "); strcat(p, $2); $$ = p; }
+		INT IDENTIFICATEUR	{ char* p = calloc(strlen($2) + 5, sizeof(char)); concatenate(p, 2, "int ", $2); $$ = p; }
 |		{ $$ = "void"; }
 ;
 liste_instructions :	

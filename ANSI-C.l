@@ -79,6 +79,7 @@ DEFAULT		"default"
 RETURN		"return"
 BREAK		"break"
 EXTERN		"extern"
+GOTO		"goto"
 
 /* Espaces, saut de lignes etc... */
 WHITESPACE	[ \t\v\n\f]
@@ -112,6 +113,7 @@ COMMENTAIRES	("/"+"\*"+(.[^\*/]|{WHITESPACE})*"\*"+"/"+|"//".*\n)
 {RETURN}		return RETURN;
 {BREAK}			return BREAK;
 {EXTERN}		return EXTERN;
+{GOTO}			return GOTO;
 
 {INTEGER}		save_value(yytext); return CONSTANTE;
 {REAL}			return CONSTANTE;

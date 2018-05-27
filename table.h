@@ -5,19 +5,21 @@
 #define POINTEUR 2
 
 typedef struct _variable{
-	int type;
-	char* name;
+	int type;	//type de la variable
+	char* name;	//nom de la variable
 	//Tableaux
-	int arity;
-	int* values;
+	int arity;	//arité de la variable
+	int* values;	//valeurs ou types des éléments. (t[3][4] => values = [3, 4])
+			//fonction(int x, int y) => values = [1, 1]
 } variable;
 
 typedef struct _table_s{
-	struct _table_s* above;
-	struct _table_s* below;
-	variable* variables[MAX_VAR];
+	struct _table_s* above;		//Table des symboles au dessus dans la pile
+	struct _table_s* below;		//Table des symboles en dessous dans la pile
+	variable* variables[MAX_VAR];	//Variables déclarées
 	
-	int range;
+	int range;			//Portée de la table
+	int mode;			//Mode de la table (debug : temporaire 1 ou normal 0)
 } table_s;
 
 //hachage de name

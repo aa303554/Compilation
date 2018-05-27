@@ -76,12 +76,15 @@ int put(int type, char* name){
 	hash = hash_var(name);
 	while(current_table->variables[hash] != NULL){
 		if(strcmp(current_table->variables[hash]->name, name) == 0){
-			printf("/* WARNING : REDEFINITION ");
-			//type différent
+			if(current_table->mode == 0){ printf("/* WARNING : REDEFINITION "); }
+			//redéfinition incohérente
 			if(current_table->variables[hash]->type != type){
-				printf("INCOHERENTE DE %s [%s, MAINTENANT %s] */\n", current_table->variables[hash]->name, types[current_table->variables[hash]->type], types[type]);
+				if(current_table->mode == 0){ printf("INCOHERENTE DE %s [%s, MAINTENANT %s] */\n", current_table->variables[hash]->name, types[current_table->variables[hash]->type], types[type]); }
+				return -1;
+			//redéfinition cohérente
 			} else {
-				printf("COHERENTE DE %s [%s] */\n", current_table->variables[hash]->name, types[type]);
+				if(current_table->mode == 0){ printf("COHERENTE DE %s [%s] */\n", current_table->variables[hash]->name, types[type]); }
+				return hash;
 			}
 			break;
 		} else {
@@ -204,6 +207,11 @@ int check_operation(char* var1, char* op, char* var2){
 		return 0;	
 	}
 	return 1;
+}
+
+void change_mode(int mode){
+	table_s* table = get_current_table();
+	table->mode = mode;
 }
 
 /*

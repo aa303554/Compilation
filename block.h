@@ -166,21 +166,33 @@ char* new_label(){
 /* Ajoute une nouvelle variable dans le code et retourne sa valeur */
 char* new_tmp(struct Block *block){
 	char* var_name = calloc(5, sizeof(char));
+	change_mode(1);
 	block->temp_var++;
 	sprintf(var_name, "_t%d", block->temp_var);
+	while(put(1, var_name) < 0){
+		block->temp_var++;
+		sprintf(var_name, "_t%d", block->temp_var);
+	}
 	char* p = calloc(9, sizeof(char));
 	concatenate(p, 3, "int ", var_name, ";\n");
 	dinsert_block(block, p);
+	change_mode(0);
 	return var_name;
 }
 
 /* Ajoute un nouveau pointeur dans le code et retourne sa valeur */
 char* new_pnt(struct Block *block){
 	char* var_name = calloc(5, sizeof(char));
-	sprintf(var_name, "_t%d", (100-block->temp_pnt));
-	block->temp_pnt++;
+	change_mode(1);
+	block->temp_var++;
+	sprintf(var_name, "_t%d", (block->temp_var));
+	while(put(2, var_name) < 0){
+		block->temp_var++;
+		sprintf(var_name, "_t%d", (block->temp_var));
+	}
 	char* p = calloc(10, sizeof(char));
 	concatenate(p, 3, "int *", var_name, ";\n");
 	dinsert_block(block, p);
+	change_mode(0);
 	return var_name;
 }
