@@ -216,7 +216,11 @@ struct Arbre* arbre_tableaux(struct Arbre* arbre, int position, int arity, int* 
 		struct Arbre* new_arbre = calloc(1, sizeof(struct Arbre));
 		struct Arbre* constante = calloc(1, sizeof(struct Arbre));
 		char* strnum = calloc(10, sizeof(char));
-		sprintf(strnum, "%d", values[arity-position]);
+		int value = 1;
+		for(int i = 1; i < position+1; i++){
+			value *= values[arity-i];
+		}
+		sprintf(strnum, "%d", value);
 		arbre_init(constante, "", strnum, NULL, NULL);
 		arbre_init(new_arbre, "", "*", arbre, constante);
 		return new_arbre;

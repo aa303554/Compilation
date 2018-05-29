@@ -609,21 +609,33 @@ expression	:
 			init_block(&$$);
 			//on construit simplement l'arbre à partir du fils gauche et du fils droit
 			init_arbre(&$$, "", "&", $1.arbre, $3.arbre);
+			char* var1 = $1.arbre->racine;
+			char* var2 = $3.arbre->racine;
+			check_operation(var1, "&", var2);
 		}
 	|	expression BOR expression %prec BOR	{ 
 			init_block(&$$);
 			//on construit simplement l'arbre à partir du fils gauche et du fils droit
 			init_arbre(&$$, "", "|", $1.arbre, $3.arbre);
+			char* var1 = $1.arbre->racine;
+			char* var2 = $3.arbre->racine;
+			check_operation(var1, "|", var2);
 		}
 	|	expression LSHIFT expression %prec LSHIFT	{ 
 			init_block(&$$);
 			//on construit simplement l'arbre à partir du fils gauche et du fils droit
 			init_arbre(&$$, "", "<<", $1.arbre, $3.arbre);
+			char* var1 = $1.arbre->racine;
+			char* var2 = $3.arbre->racine;
+			check_operation(var1, "<<", var2);
 		}
 	|	expression RSHIFT expression %prec RSHIFT	{ 
 			init_block(&$$);
 			//on construit simplement l'arbre à partir du fils gauche et du fils droit
 			init_arbre(&$$, "", ">>", $1.arbre, $3.arbre);
+			char* var1 = $1.arbre->racine;
+			char* var2 = $3.arbre->racine;
+			check_operation(var1, ">>", var2);
 		}
 	|	expression PLUS expression %prec PLUS	{ 
 			init_block(&$$);
@@ -637,16 +649,25 @@ expression	:
 			init_block(&$$);
 			//on construit simplement l'arbre à partir du fils gauche et du fils droit
 			init_arbre(&$$, "", "-", $1.arbre, $3.arbre);
+			char* var1 = $1.arbre->racine;
+			char* var2 = $3.arbre->racine;
+			check_operation(var1, "-", var2);
 		}
 	|	expression DIV expression %prec DIV	{ 
 			init_block(&$$);
 			//on construit simplement l'arbre à partir du fils gauche et du fils droit
 			init_arbre(&$$, "", "/", $1.arbre, $3.arbre);
+			char* var1 = $1.arbre->racine;
+			char* var2 = $3.arbre->racine;
+			check_operation(var1, "/", var2);
 		}
 	|	expression MUL expression %prec MUL	{ 
 			init_block(&$$);
 			//on construit simplement l'arbre à partir du fils gauche et du fils droit
 			init_arbre(&$$, "", "*", $1.arbre, $3.arbre);
+			char* var1 = $1.arbre->racine;
+			char* var2 = $3.arbre->racine;
+			check_operation(var1, "*", var2);
 		}
 	|	MOINS expression	{
 			$$ = $2;
